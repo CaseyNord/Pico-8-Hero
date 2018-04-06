@@ -8,7 +8,7 @@ __lua__
 -- 4. levels
 -- 5. different bricks
 -- 6. powerups
--- 7. juicyness (particles/screen shake)
+-- 7. juicyness (particles/screen shake/arrow animation/text blinking)
 -- 8. high score 
 
 function _init()
@@ -19,7 +19,8 @@ function _init()
 		y = 40,
 		dx = 1,
 		dy = 1,
-		radius = 2
+		radius = 2,
+		color = 10
 	}
 
 	paddle = {
@@ -29,7 +30,8 @@ function _init()
 		speed = 2.5,
 		width = 24,
 		height = 3,
-		col = 7
+		col = 7,
+		sticky = true
 	}
 
 	edge = {
@@ -76,12 +78,23 @@ function update_game()
 	--left
 	if btn(0) then
 		paddle.dx = paddle.speed * -1
-	 button.ispressed = true
+	 	button.ispressed = true
+		if paddle.sticky then
+			ball.dx = -1
+		end
 	end	
 	--right
 	if btn(1) then
 		paddle.dx = paddle.speed
 		button.ispressed = true
+		if paddle.sticky then
+			ball.dx = 1
+		end
+	end
+
+	--launch ball off paddle
+	if paddle.sticky and btnp(5) then
+		paddle.sticky = false
 	end
 	
 	--friction
@@ -93,80 +106,86 @@ function update_game()
 	--stop paddle at screen ddge
  	paddle.x =	mid(2,paddle.x,125-paddle.width)
 	
-	nextx = ball.x + ball.dx
-	nexty = ball.y + ball.dy
-	
-	--check walls
-	if nextx > edge.right or nextx < edge.left then
-		nextx = mid(edge.left,nextx,edge.right)
-		ball.dx = -ball.dx
-	 sfx(00)
-	end
-	--check ceiling
-	if nexty < edge.ceiling then
-		nexty = mid(edge.ceiling,nexty,edge.floor)
-		ball.dy = -ball.dy
-	 sfx(00)
-	end
-
-	--checks for paddle collision	
-	if hitbox(nextx,nexty,paddle.x,paddle.y,paddle.width,paddle.height) then
-		--find out which direction to deflect
-		if deflect_paddle(ball.x,ball.y,ball.dx,ball.dy,paddle.x,paddle.y,paddle.width,paddle.height) then	
+	if paddle.sticky then
+		ball.x = paddle.x + flr(paddle.width/2)
+		ball.y = paddle.y - ball.radius - 1
+	else
+		--regular ball physics
+		nextx = ball.x + ball.dx
+		nexty = ball.y + ball.dy
+		
+		--check walls
+		if nextx > edge.right or nextx < edge.left then
+			nextx = mid(edge.left,nextx,edge.right)
 			ball.dx = -ball.dx
-			--resets ball position to edge of paddle on collision to prevent strange behavior
-			if ball.x < paddle.x+paddle.width/2 then
-				nextx = paddle.x - ball.radius
-			else
-				nextx = paddle.x + paddle.width + ball.radius
-			end
-		else
+		sfx(00)
+		end
+		--check ceiling
+		if nexty < edge.ceiling then
+			nexty = mid(edge.ceiling,nexty,edge.floor)
 			ball.dy = -ball.dy
-			--sets ball to top of paddle to prevent it getting stuck inside
-			if ball.y > paddle.y then
-				nexty = paddle.y + paddle.height + ball.radius
+		sfx(00)
+		end
+
+		--checks for paddle collision	
+		if hitbox(nextx,nexty,paddle.x,paddle.y,paddle.width,paddle.height) then
+			--find out which direction to deflect
+			if deflect_paddle(ball.x,ball.y,ball.dx,ball.dy,paddle.x,paddle.y,paddle.width,paddle.height) then	
+				ball.dx = -ball.dx
+				--resets ball position to edge of paddle on collision to prevent strange behavior
+				if ball.x < paddle.x+paddle.width/2 then
+					nextx = paddle.x - ball.radius
+				else
+					nextx = paddle.x + paddle.width + ball.radius
+				end
 			else
-				nexty = paddle.y - ball.radius
+				ball.dy = -ball.dy
+				--sets ball to top of paddle to prevent it getting stuck inside
+				if ball.y > paddle.y then
+					nexty = paddle.y + paddle.height + ball.radius
+				else
+					nexty = paddle.y - ball.radius
+				end
+			end
+			points += 1
+			sfx(01)
+		end
+		
+		--checks for brick collision
+		--boolean ensures correct reflection when two bricks hit at same time
+		brickhit = false	
+		for i=1,#brick.x do
+			if brick.visible[i] and hitbox(nextx,nexty,brick.x[i],brick.y[i],brick.width,brick.height) then
+			--find out which direction to deflect
+			if not(brickhit) then
+				--find out which direction to deflect
+				if deflect_paddle(ball.x,ball.y,ball.dx,ball.dy,brick.x[i],brick.y[i],brick.width,brick.height) then	
+					ball.dx = -ball.dx
+				else
+					ball.dy = -ball.dy
+				end
+				end
+				brickhit = true
+				points += 10
+				brick.visible[i] = false
+				sfx(02)
 			end
 		end
-		points += 1
-		sfx(01)
-	end
-	
-	--checks for brick collision
-	--boolean ensures correct reflection when two bricks hit at same time
-	brickhit = false	
-	for i=1,#brick.x do
-		if brick.visible[i] and hitbox(nextx,nexty,brick.x[i],brick.y[i],brick.width,brick.height) then
- 		--find out which direction to deflect
- 		if not(brickhit) then
- 			--find out which direction to deflect
- 			if deflect_paddle(ball.x,ball.y,ball.dx,ball.dy,brick.x[i],brick.y[i],brick.width,brick.height) then	
- 				ball.dx = -ball.dx
- 			else
- 				ball.dy = -ball.dy
- 			end
+		
+		ball.x = nextx
+		ball.y = nexty
+		
+		--check floor
+		if nexty > edge.floor then
+			sfx(03)
+			lives -= 1
+			if lives < 0 then
+				gameover()
+			else
+				serveball()
 			end
-			brickhit = true
-			points += 10
-			brick.visible[i] = false
-			sfx(02)
-		end
+		end	
 	end
-	
-	ball.x = nextx
-	ball.y = nexty
-	
-	--check floor
-	if nexty > edge.floor then
-		sfx(03)
-		lives -= 1
-		if lives < 0 then
-			gameover()
-		else
-			serveball()
-		end
-	end	
 end
 
 function update_start()
@@ -183,11 +202,14 @@ function update_gameover()
 end
 
 function draw_game()
-	local i
-	
 	cls(1)
-	circfill(ball.x,ball.y,ball.radius,10)
+	circfill(ball.x,ball.y,ball.radius,ball.color)
 	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.col)
+
+	--serve preview
+	if paddle.sticky then
+		line(ball.x+ball.dx*4,ball.y-ball.dy*4,ball.x+ball.dx*6,ball.y-ball.dy*6,ball.color)
+	end
 	
 	--draw bricks
 	for i=1,#brick.x do
@@ -244,10 +266,11 @@ function buildbricks()
 end
 
 function serveball()
-	ball.x = 1
-	ball.y = 60
+	paddle.sticky = true
+	ball.x = paddle.x + flr(paddle.width/2)
+	ball.y = paddle.y - ball.radius - 1
 	ball.dx = 1
-	ball.dy = 1 
+	ball.dy = 1
 end
 
 --collosion detection
