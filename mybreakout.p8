@@ -2,7 +2,6 @@ pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
 --goals
--- 1. sticky paddle
 -- 2. angle control
 -- 3. combos
 -- 4. levels
@@ -19,6 +18,7 @@ function _init()
 		y = 40,
 		dx = 1,
 		dy = 1,
+		andgle = 1,
 		radius = 2,
 		color = 10
 	}
@@ -102,10 +102,13 @@ function update_game()
 		paddle.dx /= 1.2
 	end
 	
+	--paddle speed
 	paddle.x += paddle.dx
+
 	--stop paddle at screen ddge
  	paddle.x =	mid(2,paddle.x,125-paddle.width)
 	
+	--stick ball to paddle
 	if paddle.sticky then
 		ball.x = paddle.x + flr(paddle.width/2)
 		ball.y = paddle.y - ball.radius - 1
@@ -131,20 +134,41 @@ function update_game()
 		if hitbox(nextx,nexty,paddle.x,paddle.y,paddle.width,paddle.height) then
 			--find out which direction to deflect
 			if deflect_paddle(ball.x,ball.y,ball.dx,ball.dy,paddle.x,paddle.y,paddle.width,paddle.height) then	
+				--ball hits paddle on the side
 				ball.dx = -ball.dx
 				--resets ball position to edge of paddle on collision to prevent strange behavior
 				if ball.x < paddle.x+paddle.width/2 then
+					--left
 					nextx = paddle.x - ball.radius
 				else
+					--right
 					nextx = paddle.x + paddle.width + ball.radius
 				end
 			else
+				--ball hits paddle on the top/bottom
 				ball.dy = -ball.dy
 				--sets ball to top of paddle to prevent it getting stuck inside
 				if ball.y > paddle.y then
+					--bottom
 					nexty = paddle.y + paddle.height + ball.radius
 				else
+					--top
 					nexty = paddle.y - ball.radius
+					--change angle
+					if abs(paddle.dx) > 2 then
+						if sign(paddle.dx) == sign(ball.dx) then
+							--flatten angle
+							setangle(mid(0,ball.angle-1,2))
+						else
+							if ball.angle == 2 then
+								--reverse direction because angle is already increased
+								ball.dx *= -1
+							else
+								--increase angle
+								setangle(mid(0,ball.angle+1,2))
+							end
+						end
+					end
 				end
 			end
 			points += 1
@@ -156,14 +180,14 @@ function update_game()
 		brickhit = false	
 		for i=1,#brick.x do
 			if brick.visible[i] and hitbox(nextx,nexty,brick.x[i],brick.y[i],brick.width,brick.height) then
-			--find out which direction to deflect
-			if not(brickhit) then
 				--find out which direction to deflect
-				if deflect_paddle(ball.x,ball.y,ball.dx,ball.dy,brick.x[i],brick.y[i],brick.width,brick.height) then	
-					ball.dx = -ball.dx
-				else
-					ball.dy = -ball.dy
-				end
+				if not(brickhit) then
+					--find out which direction to deflect
+					if deflect_paddle(ball.x,ball.y,ball.dx,ball.dy,brick.x[i],brick.y[i],brick.width,brick.height) then	
+						ball.dx = -ball.dx
+					else
+						ball.dy = -ball.dy
+					end
 				end
 				brickhit = true
 				points += 10
@@ -271,6 +295,31 @@ function serveball()
 	ball.y = paddle.y - ball.radius - 1
 	ball.dx = 1
 	ball.dy = 1
+	ball.angle = 1
+end
+
+function setangle(angle)
+	ball.angle = angle
+	if angle == 2 then
+		ball.dx = 0.50*sign(ball.dx)
+		ball.dy = 1.30*sign(ball.dy)
+	elseif angle == 0 then
+		ball.dx = 1.30*sign(ball.dx)
+		ball.dy = 0.50*sign(ball.dy)
+	else
+		ball.dx = 1*sign(ball.dx)
+		ball.dy = 1*sign(ball.dy)
+	end
+end
+
+function sign(number)
+	if number < 0 then
+		return -1
+	elseif number > 0 then
+		return 1
+	else
+		return 0
+	end
 end
 
 --collosion detection
