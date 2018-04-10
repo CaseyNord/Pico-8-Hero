@@ -3,7 +3,6 @@ version 16
 __lua__
 --goals
 --  levels
---				generate level patterns
 --				stage clearing
 --  different bricks
 --  powerups
@@ -16,7 +15,7 @@ __lua__
 
 function _init()
 	cls()
-	
+
 	ball =	{
 		x = 1,
 		y = 40,
@@ -50,8 +49,11 @@ function _init()
 	}
 
 	mode = "start"
+	--level = "b9bb9bb9bb9bb9bb9b"
+	level = "bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx"
 	points = 0
 	lives = 0
+	debug = ""
 end
 
 function _update60()
@@ -250,9 +252,13 @@ function draw_game()
 	end
 
 	rectfill(0,0,128,6,0)
-	print("lives:"..lives,0,0,7)
-	print("points:"..points,68,0,7)
-	print("combo:"..combo,34,0,7)
+	if debug != "" then
+		print("debug:"..debug,0,0,7)
+	else
+		print("lives:"..lives,0,0,7)
+		print("points:"..points,68,0,7)
+		print("combo:"..combo,34,0,7)
+	end
 end
 
 function draw_start()
@@ -270,7 +276,7 @@ end
 
 function startgame()
 	mode = "game"
-	buildbricks()
+	buildbricks(level)
 	lives = 3
 	points = 0
 	combo = 0 --combo chain multiplier
@@ -281,7 +287,7 @@ function gameover()
 	mode = "gameover"
 end
 
-function buildbricks()
+function buildbricks(level)
 	brick = {
 		x = {},
 		y = {},
@@ -291,11 +297,42 @@ function buildbricks()
 		col = 14
 	}
 	
-	for i=1,55 do
+	local character, last, j, k
+	j = 0
+	for i=1,#level do
+		j += 1
+		character = sub(level,i,i)
+
+		if character == "b" then
+			last = "b"
+			add(brick.x,4+((j-1)%11)*(brick.width+2))
+			add(brick.y,20+flr((j-1)/11)*(brick.height+2))
+			add(brick.visible,true)
+		elseif character == "x" then
+			last = "x"
+		elseif character == "/" then
+			j = (flr((j-1)/11)+1)*11
+		elseif character >= "1" and character <= "9" then
+			debug = character
+			for k=1,character+0 do
+				if last == "b" then
+					add(brick.x,4+((j-1)%11)*(brick.width+2))
+					add(brick.y,20+flr((j-1)/11)*(brick.height+2))
+					add(brick.visible,true)
+				elseif last == "x" then
+					--create empty space
+				end
+				j += 1
+			end
+			j -= 1 --prevents skipping a line
+		end
+	end
+
+	--[[for i=1,55 do
 		add(brick.x,4+((i-1)%11)*(brick.width+2))
 		add(brick.y,20+flr((i-1)/11)*(brick.height+2))
 		add(brick.visible,true)
-	end
+	end]]
 end
 
 function serveball()
