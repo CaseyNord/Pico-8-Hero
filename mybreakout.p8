@@ -2,9 +2,6 @@ pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
 --goals
---levels
---	level finished
---	next level
 --different bricks
 --powerups
 --juicyness
@@ -13,6 +10,7 @@ __lua__
 --	arrow animation
 --	text blinking
 --high score 
+--game complete
 
 function _init()
 	cls()
@@ -48,21 +46,24 @@ function _init()
 	}
 
 	player = {
-		points, --initiallized in startgame()
-		combo, --initiallized in startgame()
-		lives --initiallized in startgame()
+		points, --initialized in startgame()
+		combo, --initialized in startgame()
+		lives --initialized in startgame()
 	}
 
 	manager = {
 		mode = "startmenu",
+		levelnumber, --initialized in startgame()
 		debug = ""
 	}
 
 	level = {
-		empty = "",
-		one = "b9bb9bb9bb9bb9bb9b",
-		two = "bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx",
-		three = "xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb"
+		"x6b", --test level
+		"x4b",
+		--"b9bb9bb9bb9bb9bb9b",
+		--"bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx",
+		--"xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb",
+		--""
 	}
 
 	playarea = {
@@ -77,7 +78,7 @@ function _update60()
 	if manager.mode ==  "game" then
 		update_game()
 	elseif manager.mode == "startmenu" then
-		update_startgame()
+		update_startmenu()
 	elseif manager.mode == "levelover" then
 		update_levelover()
 	elseif manager.mode == "gameover" then
@@ -89,31 +90,38 @@ function _draw()
 	if manager.mode ==  "game" then
 		draw_game()
 	elseif manager.mode == "startmenu" then
-		draw_startgame()
+		draw_startmenu()
+	elseif manager.mode == "levelover" then
+		draw_levelover()
 	elseif manager.mode == "gameover" then
 		draw_gameover()
 	end
 end
 
-function startgame()
-	manager.mode = "game"
-	player.points = 0
-	player.combo = 0 --combo chain multiplier
-	player.lives = 3
-	buildbricks(level.one)
-	serveball()
+function startmenu()
+	manager.mode = "startmenu"
 end
 
-function update_startgame()
-	if btn(5) then
+function update_startmenu()
+	if btnp(5) then
 		startgame()
 	end
 end
 
-function draw_startgame()
+function draw_startmenu()
 	rectfill(0,0,128,128,5)
 	print("breakout",48,50,7)
 	print("press ❎ to start",31,70)
+end
+
+function startgame()
+	manager.mode = "game"
+	manager.levelnumber = 1
+	player.points = 0
+	player.combo = 0 --combo chain multiplier
+	player.lives = 3
+	buildbricks(level[manager.levelnumber])
+	serveball()
 end
 
 function update_game()
@@ -236,11 +244,15 @@ function update_game()
 				end
 				--brick is hit
 				brickhit = true
+				sfx(02+player.combo)
+				brick.visible[i] = false				
 				player.points += 10*(player.combo+1)
 				player.combo += 1
 				player.combo = mid(1,player.combo,6) --make sure combo doesn't exceed 7
-				brick.visible[i] = false
-				sfx(02+player.combo)
+				if levelfinished() then
+					_draw() --final draw to clear last brick
+					levelover()
+				end
 			end
 		end
 		
@@ -281,13 +293,38 @@ function levelover()
 	manager.mode = "levelover"
 end
 
+function update_levelover()
+	if btnp(5) then
+		nextlevel()
+	end
+end
+
+function draw_levelover()
+	--cls()
+	rectfill(0,49,127,62,0)
+	print("stage clear!",48,50,7)
+	print("press ❎ to continue",28,57,6)
+end
+
+function nextlevel()
+	manager.levelnumber += 1
+	if manager.levelnumber > #level then
+		--game has been completed
+		return startmenu()
+	end
+	manager.mode = "game"
+	player.combo = 0 --combo chain multiplier
+	player.lives = 3
+	buildbricks(level[manager.levelnumber])
+	serveball()
+end
+
 function gameover()
 	manager.mode = "gameover"
 end
 
 function update_gameover()
-	--cls()
-	if btn(5) then
+	if btnp(5) then
 		startgame()
 	end
 end
@@ -307,6 +344,16 @@ function draw_gameover()
 	rectfill(0,49,127,62,0)
 	print("gameover!",48,50,7)
 	print("press ❎ to restart",28,57,6)
+end
+
+function levelfinished()
+	if #brick.visible == 0 then return false end --don't finish level if explicitly empty
+	for i=1,#brick.visible do
+		if brick.visible[i] then
+			return false
+		end
+	end
+	return true
 end
 
 function buildbricks(lvl)
