@@ -3,14 +3,14 @@ version 16
 __lua__
 --goals
 --  levels
---				stage clearing
+--		stage clearing
 --  different bricks
 --  powerups
 --  juicyness
--- 			particles
---				screen shake
---				arrow animation
---				text blinking
+-- 		particles
+--		screen shake
+--		arrow animation
+--		text blinking
 --  high score 
 
 function _init()
@@ -33,58 +33,73 @@ function _init()
 		speed = 2.5,
 		width = 24,
 		height = 3,
-		col = 7,
+		color = 7,
 		sticky = true
 	}
 
-	edge = {
+	brick = {
+		x = {},
+		y = {},
+		visible = {},
+		width = 9,
+		height = 4,
+		color = 14
+	}
+
+	player = {
+		points, --initiallized in startgame()
+		combo, --initiallized in startgame()
+		lives --initiallized in startgame()
+	}
+
+	manager = {
+		mode = "startmenu",
+		debug = ""
+	}
+
+	level = {
+		empty = "",
+		one = "b9bb9bb9bb9bb9bb9b",
+		two = "bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx",
+		three = "xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb"
+	}
+
+	playarea = {
 		left = 2,
 		right = 125,
 		ceiling = 9,
 		floor = 135
 	}
-
-	button = {
-		ispressed = false
-	}
-
-	mode = "start"
-	--level = "b9bb9bb9bb9bb9bb9b"
-	level = "bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx"
-	points = 0
-	lives = 0
-	debug = ""
 end
 
 function _update60()
-	if mode ==  "game" then
+	if manager.mode ==  "game" then
 		update_game()
-	elseif mode == "start" then
+	elseif manager.mode == "startmenu" then
 		update_start()
-	elseif mode == "gameover" then
+	elseif manager.mode == "gameover" then
 		update_gameover()
 	end
 end
 
 function _draw()
-	if mode ==  "game" then
+	if manager.mode ==  "game" then
 		draw_game()
-	elseif mode == "start" then
+	elseif manager.mode == "startmenu" then
 		draw_start()
-	elseif mode == "gameover" then
+	elseif manager.mode == "gameover" then
 		draw_gameover()
 	end
 end
 
 function update_game()
-	button.ispressed = false
-	paddle.col = 7
+	local buttonispressed = false
 	local nextx, nexty
 	
 	--left
 	if btn(0) then
 		paddle.dx = paddle.speed * -1
-	 	button.ispressed = true
+	 	buttonispressed = true
 		if paddle.sticky then
 			ball.dx = -1
 		end
@@ -92,7 +107,7 @@ function update_game()
 	--right
 	if btn(1) then
 		paddle.dx = paddle.speed
-		button.ispressed = true
+		buttonispressed = true
 		if paddle.sticky then
 			ball.dx = 1
 		end
@@ -104,7 +119,7 @@ function update_game()
 	end
 	
 	--friction
-	if not (button.ispressed) then
+	if not (buttonispressed) then
 		paddle.dx /= 1.2
 	end
 	
@@ -124,14 +139,14 @@ function update_game()
 		nexty = ball.y + ball.dy
 		
 		--check walls
-		if nextx > edge.right or nextx < edge.left then
-			nextx = mid(edge.left,nextx,edge.right)
+		if nextx > playarea.right or nextx < playarea.left then
+			nextx = mid(playarea.left,nextx,playarea.right)
 			ball.dx = -ball.dx
 		sfx(01)
 		end
 		--check ceiling
-		if nexty < edge.ceiling then
-			nexty = mid(edge.ceiling,nexty,edge.floor)
+		if nexty < playarea.ceiling then
+			nexty = mid(playarea.ceiling,nexty,playarea.floor)
 			ball.dy = -ball.dy
 		sfx(01)
 		end
@@ -139,7 +154,7 @@ function update_game()
 		--checks for paddle collision	
 		if hitbox(nextx,nexty,paddle.x,paddle.y,paddle.width,paddle.height) then
 			--find out which direction to deflect
-			if deflect_paddle(ball.x,ball.y,ball.dx,ball.dy,paddle.x,paddle.y,paddle.width,paddle.height) then	
+			if deflection(ball.x,ball.y,ball.dx,ball.dy,paddle.x,paddle.y,paddle.width,paddle.height) then	
 				--ball hits paddle on the side
 				ball.dx = -ball.dx
 				--resets ball position to edge of paddle on collision to prevent strange behavior
@@ -177,19 +192,19 @@ function update_game()
 					end
 				end
 			end
-			combo = 0 --resets combo when ball hits paddle
+			player.combo = 0 --resets combo when ball hits paddle
 			sfx(01)
 		end
 		
 		--checks for brick collision
-		--boolean ensures correct reflection when two bricks hit at same time
-		brickhit = false	
+		local brickhit = false --ensures correct reflection when two bricks hit at same time
+
 		for i=1,#brick.x do
 			if brick.visible[i] and hitbox(nextx,nexty,brick.x[i],brick.y[i],brick.width,brick.height) then
 				--find out which direction to deflect
 				if not(brickhit) then
 					--find out which direction to deflect
-					if deflect_paddle(ball.x,ball.y,ball.dx,ball.dy,brick.x[i],brick.y[i],brick.width,brick.height) then	
+					if deflection(ball.x,ball.y,ball.dx,ball.dy,brick.x[i],brick.y[i],brick.width,brick.height) then	
 						ball.dx = -ball.dx
 					else
 						ball.dy = -ball.dy
@@ -197,11 +212,11 @@ function update_game()
 				end
 				--brick is hit
 				brickhit = true
-				points += 10*(combo+1)
-				combo += 1
-				combo = mid(1,combo,6) --make sure combo doesn't exceed 7
+				player.points += 10*(player.combo+1)
+				player.combo += 1
+				player.combo = mid(1,player.combo,6) --make sure combo doesn't exceed 7
 				brick.visible[i] = false
-				sfx(02+combo)
+				sfx(02+player.combo)
 			end
 		end
 		
@@ -209,10 +224,10 @@ function update_game()
 		ball.y = nexty
 		
 		--check floor
-		if nexty > edge.floor then
+		if nexty > playarea.floor then
 			sfx(00)
-			lives -= 1
-			if lives < 0 then
+			player.lives -= 1
+			if player.lives < 0 then
 				gameover()
 			else
 				serveball()
@@ -237,7 +252,7 @@ end
 function draw_game()
 	cls(1)
 	circfill(ball.x,ball.y,ball.radius,ball.color)
-	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.col)
+	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.color)
 
 	--serve preview
 	if paddle.sticky then
@@ -247,17 +262,17 @@ function draw_game()
 	--draw bricks
 	for i=1,#brick.x do
 		if brick.visible[i] then
-			rectfill(brick.x[i],brick.y[i],brick.x[i]+brick.width,brick.y[i]+brick.height,brick.col)
+			rectfill(brick.x[i],brick.y[i],brick.x[i]+brick.width,brick.y[i]+brick.height,brick.color)
 		end
 	end
 
 	rectfill(0,0,128,6,0)
-	if debug != "" then
-		print("debug:"..debug,0,0,7)
+	if manager.debug != "" then
+		print("debug:"..manager.debug,0,0,7)
 	else
-		print("lives:"..lives,0,0,7)
-		print("points:"..points,68,0,7)
-		print("combo:"..combo,34,0,7)
+		print("lives:"..player.lives,0,0,7)
+		print("points:"..player.points,68,0,7)
+		print("combo:"..player.combo,34,0,7)
 	end
 end
 
@@ -275,34 +290,25 @@ function draw_gameover()
 end
 
 function startgame()
-	mode = "game"
-	buildbricks(level)
-	lives = 3
-	points = 0
-	combo = 0 --combo chain multiplier
+	manager.mode = "game"
+	player.points = 0
+	player.combo = 0 --combo chain multiplier
+	player.lives = 3
+	buildbricks(level.one)
 	serveball()
 end
 
 function gameover()
-	mode = "gameover"
+	manager.mode = "gameover"
 end
 
-function buildbricks(level)
-	brick = {
-		x = {},
-		y = {},
-		visible = {},
-		width = 9,
-		height = 4,
-		col = 14
-	}
-	
+function buildbricks(lvl)
 	local character, last, j, k
-	j = 0
-	for i=1,#level do
-		j += 1
-		character = sub(level,i,i)
 
+	j = 0
+	for i=1,#lvl do
+		j += 1
+		character = sub(lvl,i,i)
 		if character == "b" then
 			last = "b"
 			add(brick.x,4+((j-1)%11)*(brick.width+2))
@@ -313,7 +319,7 @@ function buildbricks(level)
 		elseif character == "/" then
 			j = (flr((j-1)/11)+1)*11
 		elseif character >= "1" and character <= "9" then
-			debug = character
+			--manager.debug = character
 			for k=1,character+0 do
 				if last == "b" then
 					add(brick.x,4+((j-1)%11)*(brick.width+2))
@@ -327,12 +333,6 @@ function buildbricks(level)
 			j -= 1 --prevents skipping a line
 		end
 	end
-
-	--[[for i=1,55 do
-		add(brick.x,4+((i-1)%11)*(brick.width+2))
-		add(brick.y,20+flr((i-1)/11)*(brick.height+2))
-		add(brick.visible,true)
-	end]]
 end
 
 function serveball()
@@ -342,7 +342,7 @@ function serveball()
 	ball.dx = 1
 	ball.dy = 1
 	ball.angle = 1
-	combo = 0
+	player.combo = 0
 end
 
 function setangle(angle)
@@ -386,9 +386,10 @@ function hitbox(bx,by,x,y,width,height)
 	return true
 end
 
-function deflect_paddle(bx,by,bdx,bdy,tx,ty,tw,th)
+function deflection(bx,by,bdx,bdy,tx,ty,tw,th)
 	local slope = bdy / bdx
 	local cx, cy
+
 	if bdx == 0 then
 		--moving vertically
 		return false
@@ -413,6 +414,7 @@ function deflect_paddle(bx,by,bdx,bdy,tx,ty,tw,th)
 		return cx < 0 and cy/cx >= slope
 	end
 end
+
 __sfx__
 00050000184501644014440114300f4300d4300c4300a430094300843006430054300343003430014000140000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00010000183601836018350183301832018310210001e0001a0001600001000010000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
