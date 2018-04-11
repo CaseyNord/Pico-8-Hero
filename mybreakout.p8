@@ -2,16 +2,17 @@ pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
 --goals
---  levels
---		stage clearing
---  different bricks
---  powerups
---  juicyness
--- 		particles
---		screen shake
---		arrow animation
---		text blinking
---  high score 
+--levels
+--	level finished
+--	next level
+--different bricks
+--powerups
+--juicyness
+--	particles
+--	screen shake
+--	arrow animation
+--	text blinking
+--high score 
 
 function _init()
 	cls()
@@ -21,7 +22,7 @@ function _init()
 		y = 40,
 		dx = 1,
 		dy = 1,
-		andgle = 1,
+		angle = 1,
 		radius = 2,
 		color = 10
 	}
@@ -76,7 +77,9 @@ function _update60()
 	if manager.mode ==  "game" then
 		update_game()
 	elseif manager.mode == "startmenu" then
-		update_start()
+		update_startgame()
+	elseif manager.mode == "levelover" then
+		update_levelover()
 	elseif manager.mode == "gameover" then
 		update_gameover()
 	end
@@ -86,10 +89,31 @@ function _draw()
 	if manager.mode ==  "game" then
 		draw_game()
 	elseif manager.mode == "startmenu" then
-		draw_start()
+		draw_startgame()
 	elseif manager.mode == "gameover" then
 		draw_gameover()
 	end
+end
+
+function startgame()
+	manager.mode = "game"
+	player.points = 0
+	player.combo = 0 --combo chain multiplier
+	player.lives = 3
+	buildbricks(level.one)
+	serveball()
+end
+
+function update_startgame()
+	if btn(5) then
+		startgame()
+	end
+end
+
+function draw_startgame()
+	rectfill(0,0,128,128,5)
+	print("breakout",48,50,7)
+	print("press ❎ to start",31,70)
 end
 
 function update_game()
@@ -236,19 +260,6 @@ function update_game()
 	end
 end
 
-function update_start()
-	if btn(5) then
-		startgame()
-	end
-end
-
-function update_gameover()
-	--cls()
-	if btn(5) then
-		startgame()
-	end
-end
-
 function draw_game()
 	cls(1)
 	circfill(ball.x,ball.y,ball.radius,ball.color)
@@ -266,6 +277,21 @@ function draw_game()
 		end
 	end
 
+function levelover()
+	manager.mode = "levelover"
+end
+
+function gameover()
+	manager.mode = "gameover"
+end
+
+function update_gameover()
+	--cls()
+	if btn(5) then
+		startgame()
+	end
+end
+
 	rectfill(0,0,128,6,0)
 	if manager.debug != "" then
 		print("debug:"..manager.debug,0,0,7)
@@ -276,30 +302,11 @@ function draw_game()
 	end
 end
 
-function draw_start()
-	rectfill(0,0,128,128,5)
-	print("breakout",48,50,7)
-	print("press ❎ to start",31,70)
-end
-
 function draw_gameover()
 	--cls()
 	rectfill(0,49,127,62,0)
 	print("gameover!",48,50,7)
 	print("press ❎ to restart",28,57,6)
-end
-
-function startgame()
-	manager.mode = "game"
-	player.points = 0
-	player.combo = 0 --combo chain multiplier
-	player.lives = 3
-	buildbricks(level.one)
-	serveball()
-end
-
-function gameover()
-	manager.mode = "gameover"
 end
 
 function buildbricks(lvl)
