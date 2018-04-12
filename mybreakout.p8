@@ -3,6 +3,10 @@ version 16
 __lua__
 --goals
 --different bricks
+--	hardened brick
+--	indestructable brick
+--	exploding brick
+--	powerup brick
 --powerups
 --juicyness
 --	particles
@@ -22,7 +26,7 @@ function _init()
 		dy = 1,
 		angle = 1,
 		radius = 2,
-		color = 10
+		colour = 10
 	}
 
 	paddle = {
@@ -32,7 +36,7 @@ function _init()
 		speed = 2.5,
 		width = 24,
 		height = 3,
-		color = 7,
+		colour = 7,
 		sticky = true
 	}
 
@@ -40,9 +44,16 @@ function _init()
 		x = {},
 		y = {},
 		visible = {},
+		type = {},
 		width = 9,
 		height = 4,
-		color = 14
+		colour = {
+			b = 14,
+			i = 5,
+			h = 15,
+			s = 10,
+			p = 12
+		}
 	}
 
 	player = {
@@ -58,10 +69,19 @@ function _init()
 	}
 
 	level = {
-		"x6b", --test level
-		"x4b",
-		--"b9bb9bb9bb9bb9bb9b",
-		--"bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx",
+		--x = empty space
+		--/ = new row
+		--b = normal brick
+		--i = indestructable brick
+		--h = hardened brick
+		--s = exploding brick
+		--p = powerup brick
+		
+		--"x6b", --test level
+		--"x4b",
+		"x2bihspx2",
+		"b9bb9bb9bb9bb9bb9b",
+		"bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx",
 		--"xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb",
 		--""
 	}
@@ -274,18 +294,30 @@ end
 
 function draw_game()
 	cls(1)
-	circfill(ball.x,ball.y,ball.radius,ball.color)
-	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.color)
+	circfill(ball.x,ball.y,ball.radius,ball.colour)
+	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.colour)
 
 	--serve preview
 	if paddle.sticky then
-		line(ball.x+ball.dx*4,ball.y-ball.dy*4,ball.x+ball.dx*6,ball.y-ball.dy*6,ball.color)
+		line(ball.x+ball.dx*4,ball.y-ball.dy*4,ball.x+ball.dx*6,ball.y-ball.dy*6,ball.colour)
 	end
 	
 	--draw bricks
 	for i=1,#brick.x do
 		if brick.visible[i] then
-			rectfill(brick.x[i],brick.y[i],brick.x[i]+brick.width,brick.y[i]+brick.height,brick.color)
+			local brickcolour
+			if brick.type[i] == "b" then
+				brickcolour = brick.colour.b
+			elseif brick.type[i] == "i" then
+				brickcolour = brick.colour.i
+			elseif brick.type[i] == "h" then
+				brickcolour = brick.colour.h
+			elseif brick.type[i] == "s" then
+				brickcolour = brick.colour.s
+			elseif brick.type[i] == "p" then
+				brickcolour = brick.colour.p
+			end
+			rectfill(brick.x[i],brick.y[i],brick.x[i]+brick.width,brick.y[i]+brick.height,brickcolour)
 		end
 	end
 
@@ -356,6 +388,13 @@ function levelfinished()
 	return true
 end
 
+function addbrick(_index,_type)
+	add(brick.x,4+((_index-1)%11)*(brick.width+2))
+	add(brick.y,20+flr((_index-1)/11)*(brick.height+2))
+	add(brick.visible,true)
+	add(brick.type,_type)
+end
+
 function buildbricks(lvl)
 	local character, last, j, k
 
@@ -363,11 +402,13 @@ function buildbricks(lvl)
 	for i=1,#lvl do
 		j += 1
 		character = sub(lvl,i,i)
-		if character == "b" then
-			last = "b"
-			add(brick.x,4+((j-1)%11)*(brick.width+2))
-			add(brick.y,20+flr((j-1)/11)*(brick.height+2))
-			add(brick.visible,true)
+		if character == "b"
+		or character == "i"
+		or character == "h"
+		or character == "s"
+		or character == "p" then
+			last = character
+			addbrick(j,character)
 		elseif character == "x" then
 			last = "x"
 		elseif character == "/" then
@@ -375,10 +416,12 @@ function buildbricks(lvl)
 		elseif character >= "1" and character <= "9" then
 			--manager.debug = character
 			for k=1,character+0 do
-				if last == "b" then
-					add(brick.x,4+((j-1)%11)*(brick.width+2))
-					add(brick.y,20+flr((j-1)/11)*(brick.height+2))
-					add(brick.visible,true)
+				if last == "b"
+				or last == "i"
+				or last == "h"
+				or last == "s"
+				or last == "p" then
+					addbrick(j,last)
 				elseif last == "x" then
 					--create empty space
 				end
