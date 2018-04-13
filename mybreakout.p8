@@ -2,11 +2,8 @@ pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
 --goals
---different bricks
---	hardened brick
---	indestructable brick
---	exploding brick
---	powerup brick
+--variable scope in functions
+--fix level clear after brick explode
 --powerups
 --juicyness
 --	particles
@@ -49,9 +46,10 @@ function _init()
 		height = 4,
 		colour = {
 			b = 14,
-			i = 5,
+			i = 6,
 			h = 15,
-			s = 10,
+			s = 9,
+			z = 8,
 			p = 12
 		}
 	}
@@ -79,7 +77,8 @@ function _init()
 		
 		--"x6b", --test level
 		--"x4b",
-		"x2bihspx2",
+		"///b5x4s9s",
+		"////x4b/i9x",
 		"b9bb9bb9bb9bb9bb9b",
 		"bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx",
 		--"xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb",
@@ -264,11 +263,7 @@ function update_game()
 				end
 				--brick is hit
 				brickhit = true
-				sfx(02+player.combo)
-				brick.visible[i] = false				
-				player.points += 10*(player.combo+1)
-				player.combo += 1
-				player.combo = mid(1,player.combo,6) --make sure combo doesn't exceed 7
+				hitbrick(i)
 				if levelfinished() then
 					_draw() --final draw to clear last brick
 					levelover()
@@ -278,6 +273,7 @@ function update_game()
 		
 		ball.x = nextx
 		ball.y = nexty
+		checkforexplosions()
 		
 		--check floor
 		if nexty > playarea.floor then
@@ -314,6 +310,8 @@ function draw_game()
 				brickcolour = brick.colour.h
 			elseif brick.type[i] == "s" then
 				brickcolour = brick.colour.s
+			elseif brick.type[i] == "zz" or brick.type[i] == "z" then
+				brickcolour = brick.colour.z
 			elseif brick.type[i] == "p" then
 				brickcolour = brick.colour.p
 			end
@@ -334,8 +332,8 @@ end
 function draw_levelover()
 	--cls()
 	rectfill(0,49,127,62,0)
-	print("stage clear!",48,50,7)
-	print("press ❎ to continue",28,57,6)
+	print("stage clear!",40,50,7)
+	print("press ❎ to continue",24,57,6)
 end
 
 function nextlevel()
@@ -381,7 +379,7 @@ end
 function levelfinished()
 	if #brick.visible == 0 then return false end --don't finish level if explicitly empty
 	for i=1,#brick.visible do
-		if brick.visible[i] then
+		if brick.visible[i] and brick.type[i] != "i" then
 			return false
 		end
 	end
@@ -430,6 +428,60 @@ function buildbricks(lvl)
 			j -= 1 --prevents skipping a line
 		end
 	end
+end
+
+function hitbrick(_i)
+	if brick.type[_i] == "b" then
+		sfx(02+player.combo)
+		brick.visible[_i] = false				
+		player.points += 10*(player.combo+1)
+		player.combo += 1
+		player.combo = mid(1,player.combo,6) --make sure combo doesn't exceed 7
+	elseif brick.type[_i] == "i" then
+		sfx(09)
+	elseif brick.type[_i] == "h" then
+		sfx(09)
+		brick.type[_i] = "b"
+	elseif brick.type[_i] == "s" then
+		sfx(02+player.combo)
+		brick.type[_i] = "zz"				
+		player.points += 10*(player.combo+1)
+		player.combo += 1
+		player.combo = mid(1,player.combo,6) --make sure combo doesn't exceed 7
+	elseif brick.type[_i] == "p" then
+		sfx(02+player.combo)
+		brick.visible[_i] = false				
+		player.points += 10*(player.combo+1)
+		player.combo += 1
+		player.combo = mid(1,player.combo,6) --make sure combo doesn't exceed 7
+		--todo trigger powerup
+	end
+end
+
+function checkforexplosions()
+	for i=1,#brick.x do
+		if brick.type[i] == "z" then
+			brickexplode(i)
+		end
+	end
+	for i=1,#brick.x do
+		if brick.type[i] == "zz" then
+			brick.type[i] = "z"
+		end
+	end
+end
+
+function brickexplode(_i)
+	brick.visible[_i]=false
+	for j=1,#brick.x do
+		if j !=_i 
+		and brick.visible[j] 
+		and abs(brick.x[j]-brick.x[_i]) <= (brick.width+2)
+		and abs(brick.y[j]-brick.y[_i]) <= (brick.height+2)
+		then
+			hitbrick(j)
+		end
+	end 
 end
 
 function serveball()
@@ -522,3 +574,4 @@ __sfx__
 000200002a36032360323503233032300143000930015400000001340012400114001040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000200002b36034360343503433034300143000930015400000001340012400114001040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000200002b360373603735037330373003a3000930015400000001340012400114001040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000200003c560367603675036730367003a3000930015400000001340012400114001040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
