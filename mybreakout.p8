@@ -263,11 +263,7 @@ function update_game()
 				end
 				--brick is hit
 				brickhit = true
-				hitbrick(i)
-				if levelfinished() then
-					_draw() --final draw to clear last brick
-					levelover()
-				end
+				hitbrick(i,true)
 			end
 		end
 		
@@ -285,6 +281,10 @@ function update_game()
 				serveball()
 			end
 		end	
+	end
+	if levelfinished() then
+		_draw() --final draw to clear last brick
+		levelover()
 	end
 end
 
@@ -430,13 +430,12 @@ function buildbricks(lvl)
 	end
 end
 
-function hitbrick(_i)
+function hitbrick(_i,_combo)
 	if brick.type[_i] == "b" then
 		sfx(02+player.combo)
-		brick.visible[_i] = false				
+		brick.visible[_i] = false
 		player.points += 10*(player.combo+1)
-		player.combo += 1
-		player.combo = mid(1,player.combo,6) --make sure combo doesn't exceed 7
+		combo(_combo)
 	elseif brick.type[_i] == "i" then
 		sfx(09)
 	elseif brick.type[_i] == "h" then
@@ -446,15 +445,20 @@ function hitbrick(_i)
 		sfx(02+player.combo)
 		brick.type[_i] = "zz"				
 		player.points += 10*(player.combo+1)
-		player.combo += 1
-		player.combo = mid(1,player.combo,6) --make sure combo doesn't exceed 7
+		combo(_combo)
 	elseif brick.type[_i] == "p" then
 		sfx(02+player.combo)
 		brick.visible[_i] = false				
 		player.points += 10*(player.combo+1)
+		combo(_combo)
+		--todo trigger powerup
+	end
+end
+
+function combo(_istrue)
+	if _istrue then
 		player.combo += 1
 		player.combo = mid(1,player.combo,6) --make sure combo doesn't exceed 7
-		--todo trigger powerup
 	end
 end
 
@@ -479,7 +483,7 @@ function brickexplode(_i)
 		and abs(brick.x[j]-brick.x[_i]) <= (brick.width+2)
 		and abs(brick.y[j]-brick.y[_i]) <= (brick.height+2)
 		then
-			hitbrick(j)
+			hitbrick(j,false)
 		end
 	end 
 end
