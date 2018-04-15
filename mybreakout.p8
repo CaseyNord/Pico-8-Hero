@@ -93,14 +93,15 @@ function _init()
 		--s = exploding brick
 		--p = powerup brick
 		
-		--"x6b", --test level
-		--"x4b",
-		"b9b//p9p",
-		"///b5x4s9s",
-		"////x4b/i9x",
-		"b9bb9bb9bb9bb9bb9b",
-		"bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx",
-		--"xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb/xb3xb3xbbxbbxbbxbb",
+		--"b9b//p9p", --test level
+		--"////xb8xxb8", --lvl 1
+		--"//xbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbx", --lvl 2
+		--"//b9bb9bb9bb9b", --lvl 3
+		--"/bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxb", --lvl 4
+		--"ib3xb3iib3xb3i/ib3xb3iib3xb3i/ib3xb3iib3xb3i", --lvl 5
+		--"ib3xb3iibbsbxbsbbi/ib3xb3iibsbbxbbsbi/ib3xb3iibbsbxbsbbi", --lvl 6
+		--"////x4b/i9x", --bonus lvl?
+
 		--""
 	}
 
