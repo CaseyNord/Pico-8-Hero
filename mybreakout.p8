@@ -5,6 +5,14 @@ __lua__
 --variable scope in functions
 --fix level clear after brick explode
 --powerups
+--	sound effects
+--	pill types
+--	speed down
+--	1up
+--	sticky
+--	expand/reduct
+--	megaball
+--	multiball
 --juicyness
 --	particles
 --	screen shake
@@ -54,6 +62,16 @@ function _init()
 		}
 	}
 
+	pill = {
+		x = {},
+		y = {},
+		visible = {},
+		type = {},
+		speed = 0.6,
+		width = 8,
+		height = 6
+	}
+
 	player = {
 		points, --initialized in startgame()
 		combo, --initialized in startgame()
@@ -77,6 +95,7 @@ function _init()
 		
 		--"x6b", --test level
 		--"x4b",
+		"b9b/x4p",
 		"///b5x4s9s",
 		"////x4b/i9x",
 		"b9bb9bb9bb9bb9bb9b",
@@ -269,6 +288,21 @@ function update_game()
 		
 		ball.x = nextx
 		ball.y = nexty
+
+		--move pills
+		for i=1,#pill.x do
+			if pill.visible[i] then
+				pill.y[i]+=pill.speed
+				if pill.y[i] > playarea.floor then
+					pill.visible[i] = false
+				end
+				if boxcollide(pill.x[i],pill.y[i],pill.width,pill.height,paddle.x,paddle.y,paddle.width,paddle.height) then
+					debug = "pickup!!"
+					pill.visible[i] = false
+				end
+			end
+		end
+
 		checkforexplosions()
 		
 		--check floor
@@ -319,6 +353,24 @@ function draw_game()
 		end
 	end
 
+	--draw pills
+	for i=1,#pill.x do
+		if pill.visible[i] then
+			spr(001,pill.x[i],pill.y[i])
+		end
+	end
+
+	--top screen banner
+	rectfill(0,0,128,6,0)
+	if manager.debug != "" then
+		print("debug:"..manager.debug,0,0,7)
+	else
+		print("lives:"..player.lives,0,0,7)
+		print("points:"..player.points,68,0,7)
+		print("combo:"..player.combo,34,0,7)
+	end
+end
+
 function levelover()
 	manager.mode = "levelover"
 end
@@ -359,16 +411,6 @@ function update_gameover()
 	end
 end
 
-	rectfill(0,0,128,6,0)
-	if manager.debug != "" then
-		print("debug:"..manager.debug,0,0,7)
-	else
-		print("lives:"..player.lives,0,0,7)
-		print("points:"..player.points,68,0,7)
-		print("combo:"..player.combo,34,0,7)
-	end
-end
-
 function draw_gameover()
 	--cls()
 	rectfill(0,49,127,62,0)
@@ -384,6 +426,14 @@ function levelfinished()
 		end
 	end
 	return true
+end
+
+function resetpills()
+	--empty pill tables
+	pill.x = {}
+	pill.y = {}
+	pill.visible = {}
+	pill.type = {}
 end
 
 function addbrick(_index,_type)
@@ -451,8 +501,24 @@ function hitbrick(_i,_combo)
 		brick.visible[_i] = false				
 		player.points += 10*(player.combo+1)
 		combo(_combo)
-		--todo trigger powerup
+		spawnpill(brick.x[_i],brick.y[_i],1)
 	end
+end
+
+function spawnpill(_brickx,_bricky,_pilltype)
+	add(pill.x,_brickx)
+	add(pill.y,_bricky)
+	add(pill.visible,true)
+	add(pill.type,_pilltype)
+
+--[[
+	works in pico-8 but probably not best practice...
+
+	pill.x[#pill.x+1] = _brickx
+	pill.y[#pill.y+1] = _bricky
+	pill.visible[#pill.visible+1] = true
+	pill.type[#pill.type+1] = _pilltype
+  ]]
 end
 
 function combo(_istrue)
@@ -496,6 +562,7 @@ function serveball()
 	ball.dy = 1
 	ball.angle = 1
 	player.combo = 0
+	resetpills();
 end
 
 function setangle(angle)
@@ -539,6 +606,24 @@ function hitbox(bx,by,x,y,width,height)
 	return true
 end
 
+--checks for collision between colliding boxes (pill/paddle)
+function boxcollide(bx1,by1,width1,height1,bx2,by2,width2,height2)
+	if (by1 > by2 + height2) then
+		return false
+	end
+	if (by1 + height1 < by2) then
+		return false
+	end
+	if (bx1 > bx2 + width2) then
+		return false
+	end
+	if (bx1 + width1 < bx2) then
+		return false
+	end
+	return true
+end
+
+--checks for correct angle deflection
 function deflection(bx,by,bdx,bdy,tx,ty,tw,th)
 	local slope = bdy / bdx
 	local cx, cy
@@ -568,6 +653,13 @@ function deflection(bx,by,bdx,bdy,tx,ty,tw,th)
 	end
 end
 
+__gfx__
+00000000077777700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000799949990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700999499990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000999949990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000999499990000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700099999900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 00050000184501644014440114300f4300d4300c4300a430094300843006430054300343003430014000140000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00010000183601836018350183301832018310210001e0001a0001600001000010000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
