@@ -5,11 +5,7 @@ __lua__
 --variable scope in functions
 --fix level clear after brick explode
 --powerups
---	sound effects
---	pill types
 --	speed down
---	1up
---	sticky
 --	expand/reduct
 --	megaball
 --	multiball
@@ -21,14 +17,22 @@ __lua__
 --high score 
 --game complete
 
+--[[
+
+	--game notes--
+-picking up a powerup immediately cancels any other powerup
+-lives reset each time a stage changes
+
+  ]]
+
 function _init()
 	cls()
 
 	ball =	{
 		x = 1,
 		y = 40,
-		dx = 1,
-		dy = 1,
+		dx, --initialized in serveball()
+		dy, --initialized in serveball()
 		angle = 1,
 		radius = 2,
 		colour = 10
@@ -72,6 +76,11 @@ function _init()
 		height = 6
 	}
 
+	powerup = {
+		type = 0,
+		clock = 0
+	}
+
 	player = {
 		points, --initialized in startgame()
 		combo, --initialized in startgame()
@@ -81,7 +90,8 @@ function _init()
 	manager = {
 		mode = "startmenu",
 		levelnumber, --initialized in startgame()
-		debug = ""
+		debug = true ,
+		debugvalue = 0 --change value at --top screen banner
 	}
 
 	level = {
@@ -93,7 +103,7 @@ function _init()
 		--s = exploding brick
 		--p = powerup brick
 		
-		--"b9b//p9p", --test level
+		"b9b//p9p", --test level
 		--"////xb8xxb8", --lvl 1
 		--"//xbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbx", --lvl 2
 		--"//b9bb9bb9bb9b", --lvl 3
@@ -202,8 +212,8 @@ function update_game()
 	
 	--stick ball to paddle
 	if paddle.sticky then
-		ball.x = paddle.x + flr(paddle.width/2)
-		ball.y = paddle.y - ball.radius - 1
+		stickyballposition()
+		ball.dy = -1 --ensures serve preview points in correct direction
 	else
 		--regular ball physics
 		nextx = ball.x + ball.dx
@@ -265,6 +275,11 @@ function update_game()
 			end
 			player.combo = 0 --resets combo when ball hits paddle
 			sfx(01)
+
+			--catch powerup
+			if powerup.type == 3 then
+				paddle.sticky = true
+			end
 		end
 		
 		--checks for brick collision
@@ -285,26 +300,10 @@ function update_game()
 				brickhit = true
 				hitbrick(i,true)
 			end
-		end
-		
+		end	
+
 		ball.x = nextx
 		ball.y = nexty
-
-		--move pills
-		for i=1,#pill.x do
-			if pill.visible[i] then
-				pill.y[i]+=pill.speed
-				if pill.y[i] > playarea.floor then
-					pill.visible[i] = false
-				end
-				if boxcollide(pill.x[i],pill.y[i],pill.width,pill.height,paddle.x,paddle.y,paddle.width,paddle.height) then
-					sfx(10)
-					pill.visible[i] = false
-				end
-			end
-		end
-
-		checkforexplosions()
 		
 		--check floor
 		if nexty > playarea.floor then
@@ -317,9 +316,35 @@ function update_game()
 			end
 		end	
 	end
+
+	--move pills
+	for i=1,#pill.x do
+		if pill.visible[i] then
+			pill.y[i]+=pill.speed
+			if pill.y[i] > playarea.floor then
+				pill.visible[i] = false
+			end
+			if boxcollide(pill.x[i],pill.y[i],pill.width,pill.height,paddle.x,paddle.y,paddle.width,paddle.height) then
+				sfx(10)
+				powerupget(pill.type[i])
+				pill.visible[i] = false
+			end
+		end
+	end
+
+	checkforexplosions()
+
 	if levelfinished() then
 		_draw() --final draw to clear last brick
 		levelover()
+	end
+
+	--powerup clock update
+	if powerup.clock >= 0 then
+		powerup.clock -= 1 
+		if powerup.clock <= 0 then
+			powerup.type = 0
+		end
 	end
 end
 
@@ -330,7 +355,7 @@ function draw_game()
 
 	--serve preview
 	if paddle.sticky then
-		line(ball.x+ball.dx*4,ball.y-ball.dy*4,ball.x+ball.dx*6,ball.y-ball.dy*6,ball.colour)
+		line(ball.x+ball.dx*4,ball.y+ball.dy*4,ball.x+ball.dx*6,ball.y+ball.dy*6,ball.colour)
 	end
 	
 	--draw bricks
@@ -368,8 +393,9 @@ function draw_game()
 
 	--top screen banner
 	rectfill(0,0,128,6,0)
-	if manager.debug != "" then
-		print("debug:"..manager.debug,0,0,7)
+	if manager.debug then
+		manager.debugvalue = powerup.clock
+		print("debug:"..manager.debugvalue,0,0,7)
 	else
 		print("lives:"..player.lives,0,0,7)
 		print("points:"..player.points,68,0,7)
@@ -442,6 +468,33 @@ function resetpills()
 	pill.type = {}
 end
 
+function powerupget(_powerup)
+	powerup.clock = 600
+	if _powerup == 1 then
+		--slow down
+		powerup.type = 1
+	elseif _powerup == 2 then
+		--life up
+		powerup.type = 0
+		player.lives += 1
+	elseif _powerup == 3 then
+		--catch
+		powerup.type = 3
+	elseif _powerup == 4 then
+		--expand
+		powerup.type = 4
+	elseif _powerup == 5 then
+		--reduce
+		powerup.type = 5
+	elseif _powerup == 6 then
+		--megaball
+		powerup.type = 6
+	elseif _powerup == 7 then
+		--multiball
+		powerup.type = 7
+	end
+end
+
 function addbrick(_index,_type)
 	add(brick.x,4+((_index-1)%11)*(brick.width+2))
 	add(brick.y,20+flr((_index-1)/11)*(brick.height+2))
@@ -468,7 +521,6 @@ function buildbricks(lvl)
 		elseif character == "/" then
 			j = (flr((j-1)/11)+1)*11
 		elseif character >= "1" and character <= "9" then
-			--manager.debug = character
 			for k=1,character+0 do
 				if last == "b"
 				or last == "i"
@@ -515,7 +567,8 @@ function spawnpill(_brickx,_bricky)
 	add(pill.x,_brickx)
 	add(pill.y,_bricky)
 	add(pill.visible,true)
-	add(pill.type,flr(rnd(7))+1)
+	--add(pill.type,flr(rnd(7))+1)
+	add(pill.type,3)
 
 --[[
 	works in pico-8 but probably not best practice...
@@ -561,14 +614,20 @@ function brickexplode(_i)
 end
 
 function serveball()
+	stickyballposition()
+	ball.dx = 1
+	ball.dy = -1
+	ball.angle = 1
 	paddle.sticky = true
+	player.combo = 0
+	powerup.type = 0
+	powerup.clock = 0
+	resetpills();
+end
+
+function stickyballposition()
 	ball.x = paddle.x + flr(paddle.width/2)
 	ball.y = paddle.y - ball.radius - 1
-	ball.dx = 1
-	ball.dy = 1
-	ball.angle = 1
-	player.combo = 0
-	resetpills();
 end
 
 function setangle(angle)
