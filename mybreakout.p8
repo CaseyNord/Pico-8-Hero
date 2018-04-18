@@ -44,6 +44,7 @@ function _init()
 		dx = 0,
 		speed = 2.5,
 		width = 24,
+		defaultwidth = 24,
 		height = 3,
 		colour = 7,
 		sticky = true
@@ -78,7 +79,8 @@ function _init()
 
 	powerup = {
 		type = 0,
-		clock = 0
+		clock = 0,
+		multiplier = 1
 	}
 
 	player = {
@@ -90,7 +92,7 @@ function _init()
 	manager = {
 		mode = "startmenu",
 		levelnumber, --initialized in startgame()
-		debug = true ,
+		debug = false,
 		debugvalue = 0 --change value at --top screen banner
 	}
 
@@ -197,6 +199,7 @@ function update_game()
 	--launch ball off paddle
 	if paddle.sticky and btnp(5) then
 		paddle.sticky = false
+		ball.x = mid(playarea.left,ball.x,playarea.right) --prevents ball from getting stuck in wall
 	end
 	
 	--friction
@@ -207,13 +210,24 @@ function update_game()
 	--paddle speed
 	paddle.x += paddle.dx
 
-	--stop paddle at screen ddge
+	--expand/reduce paddle powerups
+	if powerup.type == 4 then
+		paddle.width = flr(paddle.defaultwidth * 1.5)
+	elseif powerup.type == 5 then
+		paddle.width = flr(paddle.defaultwidth / 2)
+		powerup.multiplier = 2
+	else
+		paddle.width = paddle.defaultwidth
+		powerup.multiplier = 1
+	end
+
+	--stop paddle at screen edge
  	paddle.x =	mid(2,paddle.x,125-paddle.width)
-	
+
 	--stick ball to paddle
 	if paddle.sticky then
-		stickyballposition()
-		ball.dy = -1 --ensures serve preview points in correct direction
+		ball.x = paddle.x + stickyx
+		ball.y = paddle.y - ball.radius - 1
 	else
 		--regular ball physics
 		nextx = ball.x + ball.dx
@@ -277,8 +291,9 @@ function update_game()
 			sfx(01)
 
 			--catch powerup
-			if powerup.type == 3 then
+			if powerup.type == 3 and ball.dy < 0 then
 				paddle.sticky = true
+				stickyx = ball.x - paddle.x
 			end
 		end
 		
@@ -542,7 +557,7 @@ function hitbrick(_i,_combo)
 	if brick.type[_i] == "b" then
 		sfx(02+player.combo)
 		brick.visible[_i] = false
-		player.points += 10*(player.combo+1)
+		player.points += 10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
 	elseif brick.type[_i] == "i" then
 		sfx(09)
@@ -552,12 +567,12 @@ function hitbrick(_i,_combo)
 	elseif brick.type[_i] == "s" then
 		sfx(02+player.combo)
 		brick.type[_i] = "zz"				
-		player.points += 10*(player.combo+1)
+		player.points += 10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
 	elseif brick.type[_i] == "p" then
 		sfx(02+player.combo)
 		brick.visible[_i] = false				
-		player.points += 10*(player.combo+1)
+		player.points += 10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
 		spawnpill(brick.x[_i],brick.y[_i])
 	end
@@ -568,7 +583,7 @@ function spawnpill(_brickx,_bricky)
 	add(pill.y,_bricky)
 	add(pill.visible,true)
 	--add(pill.type,flr(rnd(7))+1)
-	add(pill.type,3)
+	add(pill.type,5)
 
 --[[
 	works in pico-8 but probably not best practice...
@@ -614,7 +629,7 @@ function brickexplode(_i)
 end
 
 function serveball()
-	stickyballposition()
+	stickyx = flr(paddle.width/2)
 	ball.dx = 1
 	ball.dy = -1
 	ball.angle = 1
@@ -623,11 +638,6 @@ function serveball()
 	powerup.type = 0
 	powerup.clock = 0
 	resetpills();
-end
-
-function stickyballposition()
-	ball.x = paddle.x + flr(paddle.width/2)
-	ball.y = paddle.y - ball.radius - 1
 end
 
 function setangle(angle)
