@@ -5,9 +5,6 @@ __lua__
 --variable scope in functions
 --fix level clear after brick explode
 --powerups
---	speed down
---	expand/reduct
---	megaball
 --	multiball
 --juicyness
 --	particles
@@ -105,7 +102,7 @@ function _init()
 		--s = exploding brick
 		--p = powerup brick
 		
-		"b9b//p9p", --test level
+		"i9i//h9h//b9b//p9p", --test level
 		--"////xb8xxb8", --lvl 1
 		--"//xbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbx", --lvl 2
 		--"//b9bb9bb9bb9b", --lvl 3
@@ -202,7 +199,7 @@ function update_game()
 		ball.x = mid(playarea.left,ball.x,playarea.right) --prevents ball from getting stuck in wall
 	end
 	
-	--friction
+	--paddle friction slowdown
 	if not (buttonispressed) then
 		paddle.dx /= 1.2
 	end
@@ -229,10 +226,15 @@ function update_game()
 		ball.x = paddle.x + stickyx
 		ball.y = paddle.y - ball.radius - 1
 	else
-		--regular ball physics
-		nextx = ball.x + ball.dx
-		nexty = ball.y + ball.dy
-		
+		--regular ball physics/slowdown powerup
+		if powerup.type == 1 then
+			nextx = ball.x + (ball.dx / 2)
+			nexty = ball.y + (ball.dy / 2)
+		else
+			nextx = ball.x + ball.dx
+			nexty = ball.y + ball.dy
+		end
+
 		--check walls
 		if nextx > playarea.right or nextx < playarea.left then
 			nextx = mid(playarea.left,nextx,playarea.right)
@@ -304,11 +306,13 @@ function update_game()
 			if brick.visible[i] and hitbox(nextx,nexty,brick.x[i],brick.y[i],brick.width,brick.height) then
 				--find out which direction to deflect
 				if not(brickhit) then
-					--find out which direction to deflect
-					if deflection(ball.x,ball.y,ball.dx,ball.dy,brick.x[i],brick.y[i],brick.width,brick.height) then	
-						ball.dx = -ball.dx
-					else
-						ball.dy = -ball.dy
+					if powerup.type == 6 and brick.type[i] == "i" or powerup.type != 6 then
+						--find out which direction to deflect
+						if deflection(ball.x,ball.y,ball.dx,ball.dy,brick.x[i],brick.y[i],brick.width,brick.height) then	
+							ball.dx = -ball.dx
+						else
+							ball.dy = -ball.dy
+						end
 					end
 				end
 				--brick is hit
@@ -317,6 +321,7 @@ function update_game()
 			end
 		end	
 
+		--update coordinates to move ball
 		ball.x = nextx
 		ball.y = nexty
 		
@@ -562,8 +567,15 @@ function hitbrick(_i,_combo)
 	elseif brick.type[_i] == "i" then
 		sfx(09)
 	elseif brick.type[_i] == "h" then
-		sfx(09)
-		brick.type[_i] = "b"
+		if powerup.type == 6 then
+			sfx(02+player.combo)
+			brick.visible[_i] = false
+			player.points += 10*(player.combo+1)*powerup.multiplier
+			combo(_combo)
+		else
+			sfx(09)
+			brick.type[_i] = "b"
+		end
 	elseif brick.type[_i] == "s" then
 		sfx(02+player.combo)
 		brick.type[_i] = "zz"				
@@ -583,7 +595,7 @@ function spawnpill(_brickx,_bricky)
 	add(pill.y,_bricky)
 	add(pill.visible,true)
 	--add(pill.type,flr(rnd(7))+1)
-	add(pill.type,5)
+	add(pill.type,6)
 
 --[[
 	works in pico-8 but probably not best practice...
