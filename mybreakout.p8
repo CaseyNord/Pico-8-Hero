@@ -48,10 +48,6 @@ function _init()
 	}
 
 	brick = {
-		x = {},
-		y = {},
-		visible = {},
-		type = {},
 		width = 9,
 		height = 4,
 		colour = {
@@ -65,17 +61,13 @@ function _init()
 	}
 
 	pill = {
-		x = {},
-		y = {},
-		visible = {},
-		type = {},
 		speed = 0.6,
 		width = 8,
 		height = 6
 	}
 
 	powerup = {
-		type = 0,
+		kind = 0,
 		clock = 0,
 		multiplier = 1
 	}
@@ -91,6 +83,13 @@ function _init()
 		levelnumber, --initialized in startgame()
 		debug = false,
 		debugvalue = 0 --change value at --top screen banner
+	}
+	
+	playarea = {
+		left = 2,
+		right = 125,
+		ceiling = 9,
+		floor = 135
 	}
 
 	level = {
@@ -112,13 +111,6 @@ function _init()
 		--"////x4b/i9x", --bonus lvl?
 
 		--""
-	}
-
-	playarea = {
-		left = 2,
-		right = 125,
-		ceiling = 9,
-		floor = 135
 	}
 end
 
@@ -208,9 +200,9 @@ function update_game()
 	paddle.x += paddle.dx
 
 	--expand/reduce paddle powerups
-	if powerup.type == 4 then
+	if powerup.kind == 4 then
 		paddle.width = flr(paddle.defaultwidth * 1.5)
-	elseif powerup.type == 5 then
+	elseif powerup.kind == 5 then
 		paddle.width = flr(paddle.defaultwidth / 2)
 		powerup.multiplier = 2
 	else
@@ -227,7 +219,7 @@ function update_game()
 		ball.y = paddle.y - ball.radius - 1
 	else
 		--regular ball physics/slowdown powerup
-		if powerup.type == 1 then
+		if powerup.kind == 1 then
 			nextx = ball.x + (ball.dx / 2)
 			nexty = ball.y + (ball.dy / 2)
 		else
@@ -293,7 +285,7 @@ function update_game()
 			sfx(01)
 
 			--catch powerup
-			if powerup.type == 3 and ball.dy < 0 then
+			if powerup.kind == 3 and ball.dy < 0 then
 				paddle.sticky = true
 				stickyx = ball.x - paddle.x
 			end
@@ -302,13 +294,13 @@ function update_game()
 		--checks for brick collision
 		local brickhit = false --ensures correct reflection when two bricks hit at same time
 
-		for i=1,#brick.x do
-			if brick.visible[i] and hitbox(nextx,nexty,brick.x[i],brick.y[i],brick.width,brick.height) then
+		for i=1,#brickobj do
+			if brickobj[i].visible and hitbox(nextx,nexty,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then
 				--find out which direction to deflect
 				if not(brickhit) then
-					if powerup.type == 6 and brick.type[i] == "i" or powerup.type != 6 then
+					if powerup.kind == 6 and brickobj[i].kind == "i" or powerup.kind != 6 then
 						--find out which direction to deflect
-						if deflection(ball.x,ball.y,ball.dx,ball.dy,brick.x[i],brick.y[i],brick.width,brick.height) then	
+						if deflection(ball.x,ball.y,ball.dx,ball.dy,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then	
 							ball.dx = -ball.dx
 						else
 							ball.dy = -ball.dy
@@ -338,17 +330,16 @@ function update_game()
 	end
 
 	--move pills
-	for i=1,#pill.x do
-		if pill.visible[i] then
-			pill.y[i]+=pill.speed
-			if pill.y[i] > playarea.floor then
-				pill.visible[i] = false
-			end
-			if boxcollide(pill.x[i],pill.y[i],pill.width,pill.height,paddle.x,paddle.y,paddle.width,paddle.height) then
-				sfx(10)
-				powerupget(pill.type[i])
-				pill.visible[i] = false
-			end
+	for i=#pillobj,1,-1 do --counts backwards so you don't collide when deleting objects
+		pillobj[i].y+=pill.speed
+		if pillobj[i].y > playarea.floor then
+			del(pillobj,pillobj[i])
+			i-=1 --prevents index from going out of range
+		elseif boxcollide(pillobj[i].x,pillobj[i].y,pill.width,pill.height,paddle.x,paddle.y,paddle.width,paddle.height) then
+			sfx(10)
+			powerupget(pillobj[i].kind)
+			del(pillobj,pillobj[i])
+			i-=1 --prevents index from going out of range
 		end
 	end
 
@@ -363,7 +354,7 @@ function update_game()
 	if powerup.clock >= 0 then
 		powerup.clock -= 1 
 		if powerup.clock <= 0 then
-			powerup.type = 0
+			powerup.kind = 0
 		end
 	end
 end
@@ -379,36 +370,34 @@ function draw_game()
 	end
 	
 	--draw bricks
-	for i=1,#brick.x do
-		if brick.visible[i] then
+	for i=1,#brickobj do
+		if brickobj[i].visible then
 			local brickcolour
-			if brick.type[i] == "b" then
+			if brickobj[i].kind == "b" then
 				brickcolour = brick.colour.b
-			elseif brick.type[i] == "i" then
+			elseif brickobj[i].kind == "i" then
 				brickcolour = brick.colour.i
-			elseif brick.type[i] == "h" then
+			elseif brickobj[i].kind == "h" then
 				brickcolour = brick.colour.h
-			elseif brick.type[i] == "s" then
+			elseif brickobj[i].kind == "s" then
 				brickcolour = brick.colour.s
-			elseif brick.type[i] == "zz" or brick.type[i] == "z" then
+			elseif brickobj[i].kind == "zz" or brickobj[i].kind == "z" then
 				brickcolour = brick.colour.z
-			elseif brick.type[i] == "p" then
+			elseif brickobj[i].kind == "p" then
 				brickcolour = brick.colour.p
 			end
-			rectfill(brick.x[i],brick.y[i],brick.x[i]+brick.width,brick.y[i]+brick.height,brickcolour)
+			rectfill(brickobj[i].x,brickobj[i].y,brickobj[i].x+brick.width,brickobj[i].y+brick.height,brickcolour)
 		end
 	end
 
 	--draw pills
-	for i=1,#pill.x do
-		if pill.visible[i] then
-			if pill.type[i] == 5 then
-				palt(0,false) --display black (0)
-				palt(15,true) --don't display creme (15)
-			end
-			spr(pill.type[i],pill.x[i],pill.y[i])
-			palt() --reset palette
+	for i=1,#pillobj do
+		if pillobj[i].kind == 5 then
+			palt(0,false) --display black (0)
+			palt(15,true) --don't display creme (15)
 		end
+		spr(pillobj[i].kind,pillobj[i].x,pillobj[i].y)
+		palt() --reset palette
 	end
 
 	--top screen banner
@@ -471,140 +460,131 @@ function draw_gameover()
 end
 
 function levelfinished()
-	if #brick.visible == 0 then return false end --don't finish level if explicitly empty
-	for i=1,#brick.visible do
-		if brick.visible[i] and brick.type[i] != "i" then
+	if #brickobj == 0 then return false end --don't finish level if explicitly empty
+	for i=1,#brickobj do
+		if brickobj[i].visible and brickobj[i].kind != "i" then
 			return false
 		end
 	end
 	return true
 end
 
-function resetpills()
-	--empty pill tables
-	pill.x = {}
-	pill.y = {}
-	pill.visible = {}
-	pill.type = {}
-end
-
 function powerupget(_powerup)
 	powerup.clock = 600
 	if _powerup == 1 then
 		--slow down
-		powerup.type = 1
+		powerup.kind = 1
 	elseif _powerup == 2 then
 		--life up
-		powerup.type = 0
+		powerup.kind = 0
 		player.lives += 1
 	elseif _powerup == 3 then
 		--catch
-		powerup.type = 3
+		powerup.kind = 3
 	elseif _powerup == 4 then
 		--expand
-		powerup.type = 4
+		powerup.kind = 4
 	elseif _powerup == 5 then
 		--reduce
-		powerup.type = 5
+		powerup.kind = 5
 	elseif _powerup == 6 then
 		--megaball
-		powerup.type = 6
+		powerup.kind = 6
 	elseif _powerup == 7 then
 		--multiball
-		powerup.type = 7
+		powerup.kind = 7
 	end
 end
 
-function addbrick(_index,_type)
-	add(brick.x,4+((_index-1)%11)*(brick.width+2))
-	add(brick.y,20+flr((_index-1)/11)*(brick.height+2))
-	add(brick.visible,true)
-	add(brick.type,_type)
+function addbrick(_index,_kind)
+	local _brickobj = {}
+	_brickobj.x = 4+((_index-1)%11)*(brick.width+2)
+	_brickobj.y = 20+flr((_index-1)/11)*(brick.height+2)
+	_brickobj.visible = true
+	_brickobj.kind = _kind
+	add(brickobj,_brickobj)
 end
 
-function buildbricks(lvl)
-	local character, last, j, k
+function buildbricks(_lvl)
+	local _character, _last, _j, _k
+	brickobj = {} --change
 
-	j = 0
-	for i=1,#lvl do
-		j += 1
-		character = sub(lvl,i,i)
-		if character == "b"
-		or character == "i"
-		or character == "h"
-		or character == "s"
-		or character == "p" then
-			last = character
-			addbrick(j,character)
-		elseif character == "x" then
-			last = "x"
-		elseif character == "/" then
-			j = (flr((j-1)/11)+1)*11
-		elseif character >= "1" and character <= "9" then
-			for k=1,character+0 do
-				if last == "b"
-				or last == "i"
-				or last == "h"
-				or last == "s"
-				or last == "p" then
-					addbrick(j,last)
-				elseif last == "x" then
+	_j = 0
+	for i=1,#_lvl do
+		_j += 1
+		_character = sub(_lvl,i,i)
+		if _character == "b"
+		or _character == "i"
+		or _character == "h"
+		or _character == "s"
+		or _character == "p" then
+			_last = _character
+			addbrick(_j,_character)
+		elseif _character == "x" then
+			_last = "x"
+		elseif _character == "/" then
+			_j = (flr((_j-1)/11)+1)*11
+		elseif _character >= "1" and _character <= "9" then
+			for _k=1,_character+0 do
+				if _last == "b"
+				or _last == "i"
+				or _last == "h"
+				or _last == "s"
+				or _last == "p" then
+					addbrick(_j,_last)
+				elseif _last == "x" then
 					--create empty space
 				end
-				j += 1
+				_j += 1
 			end
-			j -= 1 --prevents skipping a line
+			_j -= 1 --prevents skipping a line
 		end
 	end
 end
 
 function hitbrick(_i,_combo)
-	if brick.type[_i] == "b" then
+	if brickobj[_i].kind == "b" then
 		sfx(02+player.combo)
-		brick.visible[_i] = false
+		brickobj[_i].visible = false
 		player.points += 10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
-	elseif brick.type[_i] == "i" then
+	elseif brickobj[_i].kind == "i" then
 		sfx(09)
-	elseif brick.type[_i] == "h" then
-		if powerup.type == 6 then
+	elseif brickobj[_i].kind == "h" then
+		if powerup.kind == 6 then
 			sfx(02+player.combo)
-			brick.visible[_i] = false
+			brickobj[_i].visible = false
 			player.points += 10*(player.combo+1)*powerup.multiplier
 			combo(_combo)
 		else
 			sfx(09)
-			brick.type[_i] = "b"
+			brickobj[_i].kind = "b"
 		end
-	elseif brick.type[_i] == "s" then
+	elseif brickobj[_i].kind == "s" then
 		sfx(02+player.combo)
-		brick.type[_i] = "zz"				
+		brickobj[_i].kind = "zz"				
 		player.points += 10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
-	elseif brick.type[_i] == "p" then
+	elseif brickobj[_i].kind == "p" then
 		sfx(02+player.combo)
-		brick.visible[_i] = false				
+		brickobj[_i].visible = false				
 		player.points += 10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
-		spawnpill(brick.x[_i],brick.y[_i])
+		spawnpill(brickobj[_i].x,brickobj[_i].y)
 	end
 end
 
+function resetpills()
+	--empty pill tables
+	pillobj = {}
+end
+
 function spawnpill(_brickx,_bricky)
-	add(pill.x,_brickx)
-	add(pill.y,_bricky)
-	add(pill.visible,true)
-	--add(pill.type,flr(rnd(7))+1)
-	add(pill.type,6)
-
---[[
-	works in pico-8 but probably not best practice...
-
-	pill.x[#pill.x+1] = _brickx
-	pill.y[#pill.y+1] = _bricky
-	pill.visible[#pill.visible+1] = true
-	pill.type[#pill.type+1] = _pilltype
-  ]]
+	local _pillobj = {}
+	_pillobj.x = _brickx
+	_pillobj.y = _bricky
+	_pillobj.kind = flr(rnd(7))+1
+	add(pillobj,_pillobj)
 end
 
 function combo(_istrue)
@@ -615,25 +595,25 @@ function combo(_istrue)
 end
 
 function checkforexplosions()
-	for i=1,#brick.x do
-		if brick.type[i] == "z" then
+	for i=1,#brickobj do
+		if brickobj[i].kind == "z" then
 			brickexplode(i)
 		end
 	end
-	for i=1,#brick.x do
-		if brick.type[i] == "zz" then
-			brick.type[i] = "z"
+	for i=1,#brickobj do
+		if brickobj[i].kind == "zz" then
+			brickobj[i].kind = "z"
 		end
 	end
 end
 
 function brickexplode(_i)
-	brick.visible[_i]=false
-	for j=1,#brick.x do
+	brickobj[_i].visible=false
+	for j=1,#brickobj do
 		if j !=_i 
-		and brick.visible[j] 
-		and abs(brick.x[j]-brick.x[_i]) <= (brick.width+2)
-		and abs(brick.y[j]-brick.y[_i]) <= (brick.height+2)
+		and brickobj[j].visible 
+		and abs(brickobj[j].x-brickobj[_i].x) <= (brick.width+2)
+		and abs(brickobj[j].y-brickobj[_i].y) <= (brick.height+2)
 		then
 			hitbrick(j,false)
 		end
@@ -647,14 +627,14 @@ function serveball()
 	ball.angle = 1
 	paddle.sticky = true
 	player.combo = 0
-	powerup.type = 0
+	powerup.kind = 0
 	powerup.clock = 0
 	resetpills();
 end
 
-function setangle(angle)
-	ball.angle = angle
-	if angle == 2 then
+function setangle(_angle)
+	ball.angle = _angle
+	if _angle == 2 then
 		ball.dx = 0.60*sign(ball.dx)
 		ball.dy = 1.40*sign(ball.dy)
 	elseif angle == 0 then
@@ -666,10 +646,10 @@ function setangle(angle)
 	end
 end
 
-function sign(number)
-	if number < 0 then
+function sign(_number)
+	if _number < 0 then
 		return -1
-	elseif number > 0 then
+	elseif _number > 0 then
 		return 1
 	else
 		return 0
@@ -677,66 +657,66 @@ function sign(number)
 end
 
 --collosion detection
-function hitbox(bx,by,x,y,width,height)
-	if (by-ball.radius > y + height) then
+function hitbox(_bx,_by,_x,_y,_width,_height)
+	if (_by-ball.radius > _y + _height) then
 		return false
 	end
-	if (by+ball.radius < y) then
+	if (_by+ball.radius < _y) then
 		return false
 	end
-	if (bx-ball.radius > x + width) then
+	if (_bx-ball.radius > _x + _width) then
 		return false
 	end
-	if (bx+ball.radius < x) then
+	if (_bx+ball.radius < _x) then
 		return false
 	end
 	return true
 end
 
 --checks for collision between colliding boxes (pill/paddle)
-function boxcollide(bx1,by1,width1,height1,bx2,by2,width2,height2)
-	if (by1 > by2 + height2) then
+function boxcollide(_bx1,_by1,_width1,_height1,_bx2,_by2,_width2,_height2)
+	if (_by1 > _by2 + _height2) then
 		return false
 	end
-	if (by1 + height1 < by2) then
+	if (_by1 + _height1 < _by2) then
 		return false
 	end
-	if (bx1 > bx2 + width2) then
+	if (_bx1 > _bx2 + _width2) then
 		return false
 	end
-	if (bx1 + width1 < bx2) then
+	if (_bx1 + _width1 < _bx2) then
 		return false
 	end
 	return true
 end
 
 --checks for correct angle deflection
-function deflection(bx,by,bdx,bdy,tx,ty,tw,th)
-	local slope = bdy / bdx
-	local cx, cy
+function deflection(_bx,_by,_bdx,_bdy,_tx,_ty,_tw,_th)
+	local _slope = _bdy / _bdx
+	local _cx, _cy
 
-	if bdx == 0 then
+	if _bdx == 0 then
 		--moving vertically
 		return false
-	elseif bdy == 0 then
+	elseif _bdy == 0 then
 		--moving horizontally
 		return true
-	elseif slope > 0 and bdx > 0 then
-		cx = tx - bx
-		cy = ty - by
-		return cx > 0 and cy/cx < slope
-	elseif slope < 0 and bdx > 0 then
-		cx = tx - bx
-		cy = ty + th - by
-		return cx > 0 and cy/cx >= slope
-	elseif slope > 0 and bdx < 0 then
-		cx = tx + tw - bx
-		cy = ty + th - by
-		return cx < 0 and cy/cx <= slope
+	elseif _slope > 0 and _bdx > 0 then
+		_cx = _tx - _bx
+		_cy = _ty - _by
+		return _cx > 0 and _cy/_cx < _slope
+	elseif _slope < 0 and _bdx > 0 then
+		_cx = _tx - _bx
+		_cy = _ty + _th - _by
+		return _cx > 0 and _cy/_cx >= _slope
+	elseif _slope > 0 and _bdx < 0 then
+		_cx = _tx + _tw - _bx
+		_cy = _ty + _th - _by
+		return _cx < 0 and _cy/_cx <= _slope
 	else
-		cx = tx + tw - bx
-		cy = ty - by
-		return cx < 0 and cy/cx >= slope
+		_cx = _tx + _tw - _bx
+		_cy = _ty - _by
+		return _cx < 0 and _cy/_cx >= _slope
 	end
 end
 
