@@ -102,12 +102,12 @@ function _init()
 		--p = powerup brick
 		
 		"i9i//h9h//b9b//p9p", --test level
-		--"////xb8xxb8", --lvl 1
-		--"//xbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbx", --lvl 2
-		--"//b9bb9bb9bb9b", --lvl 3
-		--"/bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxb", --lvl 4
-		--"ib3xb3iib3xb3i/ib3xb3iib3xb3i/ib3xb3iib3xb3i", --lvl 5
-		--"ib3xb3iibbsbxbsbbi/ib3xb3iibsbbxbbsbi/ib3xb3iibbsbxbsbbi", --lvl 6
+		"////xb8xxb8", --lvl 1
+		"//xbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbx", --lvl 2
+		"//b9bb9bb9bb9b", --lvl 3
+		"/bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxb", --lvl 4
+		"ib3xb3iib3xb3i/ib3xb3iib3xb3i/ib3xb3iib3xb3i", --lvl 5
+		"ib3xb3iibbsbxbsbbi/ib3xb3iibsbbxbbsbi/ib3xb3iibbsbxbsbbi", --lvl 6
 		--"////x4b/i9x", --bonus lvl?
 
 		--""
@@ -334,12 +334,10 @@ function update_game()
 		pillobj[i].y+=pill.speed
 		if pillobj[i].y > playarea.floor then
 			del(pillobj,pillobj[i])
-			i-=1 --prevents index from going out of range
 		elseif boxcollide(pillobj[i].x,pillobj[i].y,pill.width,pill.height,paddle.x,paddle.y,paddle.width,paddle.height) then
 			sfx(10)
 			powerupget(pillobj[i].kind)
 			del(pillobj,pillobj[i])
-			i-=1 --prevents index from going out of range
 		end
 	end
 
