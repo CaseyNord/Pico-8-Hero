@@ -26,11 +26,13 @@ function _init()
 	cls()
 
 	ball =	{
+		--[[ delete
 		x = 1,
 		y = 40,
 		dx, --initialized in serveball()
 		dy, --initialized in serveball()
 		angle = 1,
+		]]
 		radius = 2,
 		colour = 10
 	}
@@ -213,120 +215,8 @@ function update_game()
 	--stop paddle at screen edge
  	paddle.x =	mid(2,paddle.x,125-paddle.width)
 
-	--stick ball to paddle
-	if paddle.sticky then
-		ball.x = paddle.x + stickyx
-		ball.y = paddle.y - ball.radius - 1
-	else
-		--regular ball physics/slowdown powerup
-		if powerup.kind == 1 then
-			nextx = ball.x + (ball.dx / 2)
-			nexty = ball.y + (ball.dy / 2)
-		else
-			nextx = ball.x + ball.dx
-			nexty = ball.y + ball.dy
-		end
-
-		--check walls
-		if nextx > playarea.right or nextx < playarea.left then
-			nextx = mid(playarea.left,nextx,playarea.right)
-			ball.dx = -ball.dx
-		sfx(01)
-		end
-		--check ceiling
-		if nexty < playarea.ceiling then
-			nexty = mid(playarea.ceiling,nexty,playarea.floor)
-			ball.dy = -ball.dy
-		sfx(01)
-		end
-
-		--checks for paddle collision	
-		if hitbox(nextx,nexty,paddle.x,paddle.y,paddle.width,paddle.height) then
-			--find out which direction to deflect
-			if deflection(ball.x,ball.y,ball.dx,ball.dy,paddle.x,paddle.y,paddle.width,paddle.height) then	
-				--ball hits paddle on the side
-				ball.dx = -ball.dx
-				--resets ball position to edge of paddle on collision to prevent strange behavior
-				if ball.x < paddle.x+paddle.width/2 then
-					--left
-					nextx = paddle.x - ball.radius
-				else
-					--right
-					nextx = paddle.x + paddle.width + ball.radius
-				end
-			else
-				--ball hits paddle on the top/bottom
-				ball.dy = -ball.dy
-				--sets ball to top of paddle to prevent it getting stuck inside
-				if ball.y > paddle.y then
-					--bottom
-					nexty = paddle.y + paddle.height + ball.radius
-				else
-					--top
-					nexty = paddle.y - ball.radius
-					--change angle
-					if abs(paddle.dx) > 2 then
-						if sign(paddle.dx) == sign(ball.dx) then
-							--flatten angle
-							setangle(mid(0,ball.angle-1,2))
-						else
-							if ball.angle == 2 then
-								--reverse direction because angle is already increased
-								ball.dx *= -1
-							else
-								--increase angle
-								setangle(mid(0,ball.angle+1,2))
-							end
-						end
-					end
-				end
-			end
-			player.combo = 0 --resets combo when ball hits paddle
-			sfx(01)
-
-			--catch powerup
-			if powerup.kind == 3 and ball.dy < 0 then
-				paddle.sticky = true
-				stickyx = ball.x - paddle.x
-			end
-		end
-		
-		--checks for brick collision
-		local brickhit = false --ensures correct reflection when two bricks hit at same time
-
-		for i=1,#brickobj do
-			if brickobj[i].visible and hitbox(nextx,nexty,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then
-				--find out which direction to deflect
-				if not(brickhit) then
-					if powerup.kind == 6 and brickobj[i].kind == "i" or powerup.kind != 6 then
-						--find out which direction to deflect
-						if deflection(ball.x,ball.y,ball.dx,ball.dy,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then	
-							ball.dx = -ball.dx
-						else
-							ball.dy = -ball.dy
-						end
-					end
-				end
-				--brick is hit
-				brickhit = true
-				hitbrick(i,true)
-			end
-		end	
-
-		--update coordinates to move ball
-		ball.x = nextx
-		ball.y = nexty
-		
-		--check floor
-		if nexty > playarea.floor then
-			sfx(00)
-			player.lives -= 1
-			if player.lives < 0 then
-				gameover()
-			else
-				serveball()
-			end
-		end	
+	for i=#ballobj,1,-1 do
+		updateball(i)
 	end
 
 	--move pills
@@ -359,12 +249,18 @@ end
 
 function draw_game()
 	cls(1)
-	circfill(ball.x,ball.y,ball.radius,ball.colour)
+
+	--draw balls
+	for i=1,#ballobj do
+		circfill(ballobj[i].x,ballobj[i].y,ball.radius,ball.colour)
+	end
+
+	--draw paddle
 	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.colour)
 
 	--serve preview
 	if paddle.sticky then
-		line(ball.x+ball.dx*4,ball.y+ball.dy*4,ball.x+ball.dx*6,ball.y+ball.dy*6,ball.colour)
+		line(ballobj[1].x+ballobj[1].dx*4,ballobj[1].y+ballobj[1].dy*4,ballobj[1].x+ballobj[1].dx*6,ballobj[1].y+ballobj[1].dy*6,ball.colour)
 	end
 	
 	--draw bricks
@@ -465,6 +361,125 @@ function levelfinished()
 		end
 	end
 	return true
+end
+
+function updateball(_i)
+	local _ballobj = ballobj[_i]
+	--stick ball to paddle
+	if paddle.sticky then
+		ballobj[1].x = paddle.x + stickyx
+		ballobj[1].y = paddle.y - ball.radius - 1
+	else
+		--regular ball physics/slowdown powerup
+		if powerup.kind == 1 then
+			nextx = _ballobj.x + (_ballobj.dx / 2)
+			nexty = _ballobj.y + (_ballobj.dy / 2)
+		else
+			nextx = _ballobj.x + _ballobj.dx
+			nexty = _ballobj.y + _ballobj.dy
+		end
+
+		--check walls
+		if nextx > playarea.right or nextx < playarea.left then
+			nextx = mid(playarea.left,nextx,playarea.right)
+			_ballobj.dx = -_ballobj.dx
+		sfx(01)
+		end
+		--check ceiling
+		if nexty < playarea.ceiling then
+			nexty = mid(playarea.ceiling,nexty,playarea.floor)
+			_ballobj.dy = -_ballobj.dy
+		sfx(01)
+		end
+
+		--checks for paddle collision	
+		if hitbox(nextx,nexty,paddle.x,paddle.y,paddle.width,paddle.height) then
+			--find out which direction to deflect
+			if deflection(_ballobj.x,_ballobj.y,_ballobj.dx,_ballobj.dy,paddle.x,paddle.y,paddle.width,paddle.height) then	
+				--ball hits paddle on the side
+				_ballobj.dx = -_ballobj.dx
+				--resets ball position to edge of paddle on collision to prevent strange behavior
+				if _ballobj.x < paddle.x+paddle.width/2 then
+					--left
+					nextx = paddle.x - ball.radius
+				else
+					--right
+					nextx = paddle.x + paddle.width + ball.radius
+				end
+			else
+				--ball hits paddle on the top/bottom
+				_ballobj.dy = -_ballobj.dy
+				--sets ball to top of paddle to prevent it getting stuck inside
+				if _ballobj.y > paddle.y then
+					--bottom
+					nexty = paddle.y + paddle.height + ball.radius
+				else
+					--top
+					nexty = paddle.y - ball.radius
+					--change angle
+					if abs(paddle.dx) > 2 then
+						if sign(paddle.dx) == sign(_ballobj.dx) then
+							--flatten angle
+							setangle(_ballobj,mid(0,_ballobj.angle-1,2))
+						else
+							if _ballobj.angle == 2 then
+								--reverse direction because angle is already increased
+								_ballobj.dx *= -1
+							else
+								--increase angle
+								setangle(_ballobj,mid(0,_ballobj.angle+1,2))
+							end
+						end
+					end
+				end
+			end
+			player.combo = 0 --resets combo when ball hits paddle
+			sfx(01)
+
+			--catch powerup
+			if powerup.kind == 3 and _ballobj.dy < 0 then
+				paddle.sticky = true
+				stickyx = _ballobj.x - paddle.x
+			end
+		end
+		
+		--checks for brick collision
+		local brickhit = false --ensures correct reflection when two bricks hit at same time
+
+		for i=1,#brickobj do
+			if brickobj[i].visible and hitbox(nextx,nexty,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then
+				--find out which direction to deflect
+				if not(brickhit) then
+					if powerup.kind == 6 and brickobj[i].kind == "i" or powerup.kind != 6 then
+						--find out which direction to deflect
+						if deflection(_ballobj.x,_ballobj.y,_ballobj.dx,_ballobj.dy,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then	
+							_ballobj.dx = -_ballobj.dx
+						else
+							_ballobj.dy = -_ballobj.dy
+						end
+					end
+				end
+				--brick is hit
+				brickhit = true
+				hitbrick(i,true)
+			end
+		end	
+
+		--update coordinates to move ball
+		_ballobj.x = nextx
+		_ballobj.y = nexty
+		
+		--check floor
+		if nexty > playarea.floor then
+			sfx(00)
+			player.lives -= 1
+			if player.lives < 0 then
+				gameover()
+			else
+				serveball()
+			end
+		end	
+	end
 end
 
 function powerupget(_powerup)
@@ -618,29 +633,50 @@ function brickexplode(_i)
 	end 
 end
 
+function newball()
+	_ball = {}
+	_ball.x = 0
+	_ball.y = 0
+	_ball.dx = 0
+	_ball.dy = 0
+	_ball.angle = 1
+	return _ball
+end
+
 function serveball()
-	stickyx = flr(paddle.width/2)
+	ballobj = {}
+	ballobj[1] = newball()
+	ballobj[1].x = paddle.x+flr(paddle.width/2)
+	ballobj[1].y = paddle.y-ball.radius
+	ballobj[1].dx = 1
+	ballobj[1].dy = -1
+	ballobj[1].angle = 1 
+	--[[ delete
 	ball.dx = 1
 	ball.dy = -1
 	ball.angle = 1
+	]]
+
 	paddle.sticky = true
+	stickyx = flr(paddle.width/2)
+
 	player.combo = 0
 	powerup.kind = 0
 	powerup.clock = 0
 	resetpills();
 end
 
-function setangle(_angle)
-	ball.angle = _angle
+function setangle(_ball,_angle)
+	_ball.angle = _angle
 	if _angle == 2 then
-		ball.dx = 0.60*sign(ball.dx)
-		ball.dy = 1.40*sign(ball.dy)
+		_ball.dx = 0.60*sign(_ball.dx)
+		_ball.dy = 1.40*sign(_ball.dy)
 	elseif angle == 0 then
-		ball.dx = 1.40*sign(ball.dx)
-		ball.dy = 0.60*sign(ball.dy)
+		_ball.dx = 1.40*sign(_ball.dx)
+		_ball.dy = 0.60*sign(_ball.dy)
 	else
-		ball.dx = 1*sign(ball.dx)
-		ball.dy = 1*sign(ball.dy)
+		_ball.dx = 1*sign(_ball.dx)
+		_ball.dy = 1*sign(_ball.dy)
 	end
 end
 
