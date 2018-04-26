@@ -4,8 +4,9 @@ __lua__
 --goals
 --variable scope in functions
 --fix level clear after brick explode
---powerups
---	multiball
+--multiball
+--	sticky
+--	serve preview
 --juicyness
 --	particles
 --	screen shake
@@ -14,7 +15,7 @@ __lua__
 --high score 
 --game complete
 
---[[
+--[[ delete
 
 	--game notes--
 -picking up a powerup immediately cancels any other powerup
@@ -472,11 +473,15 @@ function updateball(_i)
 		--check floor
 		if nexty > playarea.floor then
 			sfx(00)
-			player.lives -= 1
-			if player.lives < 0 then
-				gameover()
+			if #ballobj > 1 then
+				del(ballobj,_ballobj)
 			else
-				serveball()
+				player.lives -= 1
+				if player.lives < 0 then
+					gameover()
+				else
+					serveball()
+				end
 			end
 		end	
 	end
@@ -506,6 +511,7 @@ function powerupget(_powerup)
 	elseif _powerup == 7 then
 		--multiball
 		powerup.kind = 7
+		multiball()
 	end
 end
 
@@ -634,13 +640,42 @@ function brickexplode(_i)
 end
 
 function newball()
-	_ball = {}
+	local _ball = {}
 	_ball.x = 0
 	_ball.y = 0
 	_ball.dx = 0
 	_ball.dy = 0
 	_ball.angle = 1
 	return _ball
+end
+
+function copyball(_ball)
+	local newball = {}
+	newball.x = _ball.x
+	newball.y = _ball.y
+	newball.dx = _ball.dx
+	newball.dy = _ball.dy
+	newball.angle = _ball.angle
+	return newball
+end
+
+function multiball()
+	_ball2 = copyball(ballobj[1])
+	_ball3 = copyball(ballobj[1])
+	
+	if ballobj[1].angle == 0 then
+		setangle(_ball2,1)
+		setangle(_ball3,2)
+	elseif ballobj[1].angle == 1 then
+		setangle(_ball2,0)
+		setangle(_ball3,2)
+	else
+		setangle(_ball2,0)
+		setangle(_ball3,1)
+	end
+
+	ballobj[#ballobj+1] = _ball2
+	ballobj[#ballobj+1] = _ball3
 end
 
 function serveball()
