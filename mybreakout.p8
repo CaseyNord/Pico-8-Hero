@@ -4,10 +4,11 @@ __lua__
 --goals
 --variable scope in functions
 --fix level clear after brick explode
---multiball
---	sticky
---	serve preview
+--  powerup fixes:
+--		slowdown/expand/reduce/megaball - seperate timers
+--		multiball adjustments (two balls/random directions?)
 --juicyness
+--	serve preview
 --	particles
 --	screen shake
 --	arrow animation
@@ -15,25 +16,10 @@ __lua__
 --high score 
 --game complete
 
---[[ delete
-
-	--game notes--
--picking up a powerup immediately cancels any other powerup
--lives reset each time a stage changes
-
-  ]]
-
 function _init()
 	cls()
 
 	ball =	{
-		--[[ delete
-		x = 1,
-		y = 40,
-		dx, --initialized in serveball()
-		dy, --initialized in serveball()
-		angle = 1,
-		]]
 		radius = 2,
 		colour = 10
 	}
@@ -47,7 +33,7 @@ function _init()
 		defaultwidth = 24,
 		height = 3,
 		colour = 7,
-		sticky = true
+		sticky --intialized in serveball
 	}
 
 	brick = {
@@ -175,23 +161,18 @@ function update_game()
 	if btn(0) then
 		paddle.dx = paddle.speed * -1
 	 	buttonispressed = true
-		if paddle.sticky then
-			ball.dx = -1
-		end
+		stickyaim(-1)
 	end	
 	--right
 	if btn(1) then
 		paddle.dx = paddle.speed
 		buttonispressed = true
-		if paddle.sticky then
-			ball.dx = 1
-		end
+		stickyaim(1)
 	end
 
 	--launch ball off paddle
-	if paddle.sticky and btnp(5) then
-		paddle.sticky = false
-		ball.x = mid(playarea.left,ball.x,playarea.right) --prevents ball from getting stuck in wall
+	if  btnp(5) then
+		releasecurrentsticky()
 	end
 	
 	--paddle friction slowdown
@@ -254,15 +235,15 @@ function draw_game()
 	--draw balls
 	for i=1,#ballobj do
 		circfill(ballobj[i].x,ballobj[i].y,ball.radius,ball.colour)
+	
+		if ballobj[i].sticky then
+			--serve preview
+			line(ballobj[i].x+ballobj[i].dx*4,ballobj[i].y+ballobj[i].dy*4,ballobj[i].x+ballobj[i].dx*6,ballobj[i].y+ballobj[i].dy*6,ball.colour)
+		end
 	end
 
 	--draw paddle
 	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.colour)
-
-	--serve preview
-	if paddle.sticky then
-		line(ballobj[1].x+ballobj[1].dx*4,ballobj[1].y+ballobj[1].dy*4,ballobj[1].x+ballobj[1].dx*6,ballobj[1].y+ballobj[1].dy*6,ball.colour)
-	end
 	
 	--draw bricks
 	for i=1,#brickobj do
@@ -367,9 +348,9 @@ end
 function updateball(_i)
 	local _ballobj = ballobj[_i]
 	--stick ball to paddle
-	if paddle.sticky then
-		ballobj[1].x = paddle.x + stickyx
-		ballobj[1].y = paddle.y - ball.radius - 1
+	if _ballobj.sticky then
+		_ballobj.x = paddle.x + stickyx
+		_ballobj.y = paddle.y - ball.radius - 1
 	else
 		--regular ball physics/slowdown powerup
 		if powerup.kind == 1 then
@@ -438,8 +419,10 @@ function updateball(_i)
 			sfx(01)
 
 			--catch powerup
-			if powerup.kind == 3 and _ballobj.dy < 0 then
-				paddle.sticky = true
+			if paddle.sticky and _ballobj.dy < 0 then
+				releasecurrentsticky()
+				paddle.sticky = false
+				_ballobj.sticky = true
 				stickyx = _ballobj.x - paddle.x
 			end
 		end
@@ -487,11 +470,28 @@ function updateball(_i)
 	end
 end
 
+function releasecurrentsticky()
+	for i=1,#ballobj do
+		if ballobj[i].sticky then
+			ballobj[i].x = mid(playarea.left,ballobj[i].x,playarea.right)
+			ballobj[i].sticky = false
+		end
+	end
+end
+
+function stickyaim(_sign)
+	for i=1,#ballobj do
+		if ballobj[i].sticky then
+			ballobj[i].dx = abs(ballobj[i].dx)*_sign
+		end
+	end
+end
+
 function powerupget(_powerup)
-	powerup.clock = 600
 	if _powerup == 1 then
 		--slow down
 		powerup.kind = 1
+		powerup.clock = 600
 	elseif _powerup == 2 then
 		--life up
 		powerup.kind = 0
@@ -499,18 +499,29 @@ function powerupget(_powerup)
 	elseif _powerup == 3 then
 		--catch
 		powerup.kind = 3
+		paddle.sticky = true
+		--prevents 'handoff' if a ball is already stuck to paddle
+		for i=1,#ballobj do
+			if ballobj[i].sticky then
+				paddle.sticky = false
+			end
+		end
 	elseif _powerup == 4 then
 		--expand
 		powerup.kind = 4
+		powerup.clock = 600
 	elseif _powerup == 5 then
 		--reduce
 		powerup.kind = 5
+		powerup.clock = 600
 	elseif _powerup == 6 then
 		--megaball
 		powerup.kind = 6
+		powerup.clock = 600
 	elseif _powerup == 7 then
 		--multiball
 		powerup.kind = 7
+		releasecurrentsticky()
 		multiball()
 	end
 end
@@ -602,7 +613,15 @@ function spawnpill(_brickx,_bricky)
 	local _pillobj = {}
 	_pillobj.x = _brickx
 	_pillobj.y = _bricky
-	_pillobj.kind = flr(rnd(7))+1
+	--_pillobj.kind = flr(rnd(7))+1
+	
+	t = flr(rnd(2))
+	if t == 1 then
+		_pillobj.kind = 3
+	else
+		_pillobj.kind = 7
+	end
+
 	add(pillobj,_pillobj)
 end
 
@@ -646,6 +665,7 @@ function newball()
 	_ball.dx = 0
 	_ball.dy = 0
 	_ball.angle = 1
+	_ball.sticky = false
 	return _ball
 end
 
@@ -656,6 +676,7 @@ function copyball(_ball)
 	newball.dx = _ball.dx
 	newball.dy = _ball.dy
 	newball.angle = _ball.angle
+	newball.sticky = _ball.sticky
 	return newball
 end
 
@@ -686,14 +707,10 @@ function serveball()
 	ballobj[1].dx = 1
 	ballobj[1].dy = -1
 	ballobj[1].angle = 1 
-	--[[ delete
-	ball.dx = 1
-	ball.dy = -1
-	ball.angle = 1
-	]]
+	ballobj[1].sticky = true
 
-	paddle.sticky = true
-	stickyx = flr(paddle.width/2)
+	paddle.sticky = false
+	stickyx = flr(paddle.width/2) --necessary here for catch powerup
 
 	player.combo = 0
 	powerup.kind = 0
