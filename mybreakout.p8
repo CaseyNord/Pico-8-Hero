@@ -4,17 +4,33 @@ __lua__
 --goals
 --variable scope in functions
 --fix level clear after brick explode
---  powerup fixes:
---		slowdown/expand/reduce/megaball - seperate timers
---		multiball adjustments (two balls/random directions?)
 --juicyness
 --	serve preview
 --	particles
+--		brick particles
+--		death particles
+--		collision particles
+--level setup
 --	screen shake
 --	arrow animation
 --	text blinking
 --high score 
 --game complete
+
+--[[
+
+game notes:
+
+-only one powerup can be active at a time
+-this is because of the kind property, it is setup to where only one can be active at a time
+-this could possible be changed if the decision is made to make it possible to have multiple certain
+-powerups active simultaneously
+
+-multibass has a weird behavior where it doesn't always seem to split on pickup.
+-i think this has to do with how the array deletes elements and how the rnd() function
+-is generating random numbers.  Look into this
+
+]]
 
 function _init()
 	cls()
@@ -33,7 +49,7 @@ function _init()
 		defaultwidth = 24,
 		height = 3,
 		colour = 7,
-		sticky --intialized in serveball
+		sticky --intialized in serveball()
 	}
 
 	brick = {
@@ -56,9 +72,14 @@ function _init()
 	}
 
 	powerup = {
+		multiplier = 1,
 		kind = 0,
-		clock = 0,
-		multiplier = 1
+		timer = {
+			slowdown, --intialized in serveball()
+			expand, --intialized in serveball()
+			reduce, --intialized in serveball()
+			megaball --intialized in serveball()
+		}
 	}
 
 	player = {
@@ -184,9 +205,9 @@ function update_game()
 	paddle.x += paddle.dx
 
 	--expand/reduce paddle powerups
-	if powerup.kind == 4 then
+	if powerup.timer.expand > 0 then
 		paddle.width = flr(paddle.defaultwidth * 1.5)
-	elseif powerup.kind == 5 then
+	elseif powerup.timer.reduce > 0 then
 		paddle.width = flr(paddle.defaultwidth / 2)
 		powerup.multiplier = 2
 	else
@@ -221,11 +242,17 @@ function update_game()
 	end
 
 	--powerup clock update
-	if powerup.clock >= 0 then
-		powerup.clock -= 1 
-		if powerup.clock <= 0 then
-			powerup.kind = 0
-		end
+	if powerup.timer.slowdown > 0 then
+		powerup.timer.slowdown -=1
+	end
+	if powerup.timer.expand > 0 then
+		powerup.timer.expand -=1
+	end
+	if powerup.timer.reduce > 0 then
+		powerup.timer.reduce -=1
+	end
+	if powerup.timer.megaball > 0 then
+		powerup.timer.megaball -=1
 	end
 end
 
@@ -279,7 +306,7 @@ function draw_game()
 	--top screen banner
 	rectfill(0,0,128,6,0)
 	if manager.debug then
-		manager.debugvalue = powerup.clock
+		manager.debugvalue = powerup.timer
 		print("debug:"..manager.debugvalue,0,0,7)
 	else
 		print("lives:"..player.lives,0,0,7)
@@ -353,7 +380,7 @@ function updateball(_i)
 		_ballobj.y = paddle.y - ball.radius - 1
 	else
 		--regular ball physics/slowdown powerup
-		if powerup.kind == 1 then
+		if powerup.timer.slowdown > 0 then
 			nextx = _ballobj.x + (_ballobj.dx / 2)
 			nexty = _ballobj.y + (_ballobj.dy / 2)
 		else
@@ -489,11 +516,11 @@ end
 
 function powerupget(_powerup)
 	if _powerup == 1 then
-		--slow down
+		--slowdown
 		powerup.kind = 1
-		powerup.clock = 600
+		powerup.timer.slowdown = 600
 	elseif _powerup == 2 then
-		--life up
+		--lifeup
 		powerup.kind = 0
 		player.lives += 1
 	elseif _powerup == 3 then
@@ -509,19 +536,20 @@ function powerupget(_powerup)
 	elseif _powerup == 4 then
 		--expand
 		powerup.kind = 4
-		powerup.clock = 600
+		powerup.timer.reduce = 0
+		powerup.timer.expand = 600
 	elseif _powerup == 5 then
 		--reduce
 		powerup.kind = 5
-		powerup.clock = 600
+		powerup.timer.expand = 0
+		powerup.timer.reduce = 600
 	elseif _powerup == 6 then
 		--megaball
 		powerup.kind = 6
-		powerup.clock = 600
+		powerup.timer.megaball = 600
 	elseif _powerup == 7 then
 		--multiball
 		powerup.kind = 7
-		releasecurrentsticky()
 		multiball()
 	end
 end
@@ -581,7 +609,7 @@ function hitbrick(_i,_combo)
 	elseif brickobj[_i].kind == "i" then
 		sfx(09)
 	elseif brickobj[_i].kind == "h" then
-		if powerup.kind == 6 then
+		if powerup.timer.megaball > 0 then
 			sfx(02+player.combo)
 			brickobj[_i].visible = false
 			player.points += 10*(player.combo+1)*powerup.multiplier
@@ -613,14 +641,16 @@ function spawnpill(_brickx,_bricky)
 	local _pillobj = {}
 	_pillobj.x = _brickx
 	_pillobj.y = _bricky
-	--_pillobj.kind = flr(rnd(7))+1
+	_pillobj.kind = flr(rnd(7))+1
 	
+	--[[ test powerups
 	t = flr(rnd(2))
 	if t == 1 then
 		_pillobj.kind = 3
 	else
 		_pillobj.kind = 7
 	end
+	]]
 
 	add(pillobj,_pillobj)
 end
@@ -681,22 +711,28 @@ function copyball(_ball)
 end
 
 function multiball()
-	_ball2 = copyball(ballobj[1])
-	_ball3 = copyball(ballobj[1])
+	--there is a bug here where the random function doesn't seem to always return
+	--a valid ball to split, meaning sometimes a multiball pickup won't do anything
+	local _ballobjindex = flr(rnd(#ballobj))+1
+	local _ogball = copyball(ballobj[_ballobjindex]) --index a random ball 
+	local _ball2 = _ogball 
+	--local _ball3 = copyball(ballobj[1])
 	
-	if ballobj[1].angle == 0 then
-		setangle(_ball2,1)
-		setangle(_ball3,2)
-	elseif ballobj[1].angle == 1 then
+	if _ogball.angle == 0 then
 		setangle(_ball2,0)
-		setangle(_ball3,2)
+		--setangle(_ball3,2)
+	elseif _ogball.angle == 1 then
+		setangle(_ogball)
+		setangle(_ball2,2)
+		--setangle(_ball3,0)
 	else
 		setangle(_ball2,0)
-		setangle(_ball3,1)
+		--setangle(_ball3,1)
 	end
 
+	_ball2.stuck = false --prevents unwanted paddle sticking behavior
 	ballobj[#ballobj+1] = _ball2
-	ballobj[#ballobj+1] = _ball3
+	--ballobj[#ballobj+1] = _ball3
 end
 
 function serveball()
@@ -714,7 +750,10 @@ function serveball()
 
 	player.combo = 0
 	powerup.kind = 0
-	powerup.clock = 0
+	powerup.timer.slowdown = 0
+	powerup.timer.expand = 0
+	powerup.timer.reduce = 0
+	powerup.timer.megaball = 0
 	resetpills();
 end
 
