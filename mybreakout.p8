@@ -11,10 +11,12 @@ __lua__
 --		death particles
 --		collision particles
 --level setup
---	screen shake
 --	arrow animation
 --	text blinking
 --high score 
+--ui
+--	powerup messages
+--	powerup percentage bar
 --game complete
 
 --[[
@@ -25,10 +27,6 @@ game notes:
 -this is because of the kind property, it is setup to where only one can be active at a time
 -this could possible be changed if the decision is made to make it possible to have multiple certain
 -powerups active simultaneously
-
--multibass has a weird behavior where it doesn't always seem to split on pickup.
--i think this has to do with how the array deletes elements and how the rnd() function
--is generating random numbers.  Look into this
 
 ]]
 
@@ -102,6 +100,10 @@ function _init()
 		floor = 135
 	}
 
+	effect = {
+		shake = 0
+	}
+
 	level = {
 		--x = empty space
 		--/ = new row
@@ -111,7 +113,9 @@ function _init()
 		--s = exploding brick
 		--p = powerup brick
 		
-		"i9i//h9h//b9b//p9p", --test level
+		"s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
+		"b9b/xixbbpbbxix/hphphphphph",
+		"i9i//h9h//b9b//p9p", --test level one
 		"////xb8xxb8", --lvl 1
 		"//xbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbx", --lvl 2
 		"//b9bb9bb9bb9b", --lvl 3
@@ -137,6 +141,7 @@ function _update60()
 end
 
 function _draw()
+	screenshake()
 	if manager.mode ==  "game" then
 		draw_game()
 	elseif manager.mode == "startmenu" then
@@ -257,7 +262,7 @@ function update_game()
 end
 
 function draw_game()
-	cls(1)
+	rectfill(0,0,127,127,1)
 
 	--draw balls
 	for i=1,#ballobj do
@@ -326,7 +331,6 @@ function update_levelover()
 end
 
 function draw_levelover()
-	--cls()
 	rectfill(0,49,127,62,0)
 	print("stage clear!",40,50,7)
 	print("press ❎ to continue",24,57,6)
@@ -356,7 +360,6 @@ function update_gameover()
 end
 
 function draw_gameover()
-	--cls()
 	rectfill(0,49,127,62,0)
 	print("gameover!",48,50,7)
 	print("press ❎ to restart",28,57,6)
@@ -401,7 +404,7 @@ function updateball(_i)
 		sfx(01)
 		end
 
-		--checks for paddle collision	
+		--checks for paddle collision
 		if hitbox(nextx,nexty,paddle.x,paddle.y,paddle.width,paddle.height) then
 			--find out which direction to deflect
 			if deflection(_ballobj.x,_ballobj.y,_ballobj.dx,_ballobj.dy,paddle.x,paddle.y,paddle.width,paddle.height) then	
@@ -483,9 +486,13 @@ function updateball(_i)
 		--check floor
 		if nexty > playarea.floor then
 			sfx(00)
+			--lose multiball
 			if #ballobj > 1 then
+				effect.shake += 0.1
 				del(ballobj,_ballobj)
 			else
+				--death
+				effect.shake += 0.3
 				player.lives -= 1
 				if player.lives < 0 then
 					gameover()
@@ -641,8 +648,8 @@ function spawnpill(_brickx,_bricky)
 	local _pillobj = {}
 	_pillobj.x = _brickx
 	_pillobj.y = _bricky
-	_pillobj.kind = flr(rnd(7))+1
-	
+	--_pillobj.kind = flr(rnd(7))+1
+	_pillobj.kind = 7
 	--[[ test powerups
 	t = flr(rnd(2))
 	if t == 1 then
@@ -651,6 +658,7 @@ function spawnpill(_brickx,_bricky)
 		_pillobj.kind = 7
 	end
 	]]
+	
 
 	add(pillobj,_pillobj)
 end
@@ -664,8 +672,13 @@ end
 
 function checkforexplosions()
 	for i=1,#brickobj do
-		if brickobj[i].kind == "z" then
+		if brickobj[i].kind == "z" and brickobj[i].visible then
 			brickexplode(i)
+			--brick explosion effect
+			effect.shake += 0.2
+			if effect.shake > 1 then
+				effect.shake = 1
+			end
 		end
 	end
 	for i=1,#brickobj do
@@ -685,7 +698,7 @@ function brickexplode(_i)
 		then
 			hitbrick(j,false)
 		end
-	end 
+	end
 end
 
 function newball()
@@ -719,10 +732,10 @@ function multiball()
 	--local _ball3 = copyball(ballobj[1])
 	
 	if _ogball.angle == 0 then
-		setangle(_ball2,0)
+		setangle(_ball2,2)
 		--setangle(_ball3,2)
 	elseif _ogball.angle == 1 then
-		setangle(_ogball)
+		setangle(_ogball,0)
 		setangle(_ball2,2)
 		--setangle(_ball3,0)
 	else
@@ -842,6 +855,23 @@ function deflection(_bx,_by,_bdx,_bdy,_tx,_ty,_tw,_th)
 		_cx = _tx + _tw - _bx
 		_cy = _ty - _by
 		return _cx < 0 and _cy/_cx >= _slope
+	end
+end
+
+-------- juicyness --------
+
+function screenshake()
+	local _x = 16-rnd(32)
+	local _y = 16-rnd(32)
+
+	_x *= effect.shake
+	_y *= effect.shake
+
+	camera(_x,_y)
+
+	effect.shake *= 0.95
+	if effect.shake < 0.05 then
+		effect.shake = 0
 	end
 end
 
