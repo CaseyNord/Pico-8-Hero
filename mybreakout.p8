@@ -101,7 +101,13 @@ function _init()
 	}
 
 	effect = {
-		shake = 0
+		shake = 0,
+		countdown = -1,
+		blink = 7,
+		blinkframe = 0,
+		blinkspeed = 9,
+		blinkcolorindex = 1,
+		blinksequence = {3,11,7,11}
 	}
 
 	level = {
@@ -129,6 +135,7 @@ function _init()
 end
 
 function _update60()
+	blink()
 	if manager.mode ==  "game" then
 		update_game()
 	elseif manager.mode == "startmenu" then
@@ -158,15 +165,29 @@ function startmenu()
 end
 
 function update_startmenu()
-	if btnp(5) then
-		startgame()
+	--blinking effects at game start
+	if effect.countdown < 0 then
+		if btnp(5) then
+			effect.countdown = 70
+			sfx(11)
+		end
+	else
+	blink()
+	blink()
+	blink()
+	blink()
+		effect.countdown -= 1
+		if effect.countdown <= 0 then
+			effect.countdown -=1
+			startgame()
+		end
 	end
 end
 
 function draw_startmenu()
 	rectfill(0,0,128,128,5)
 	print("breakout",48,50,7)
-	print("press ❎ to start",31,70)
+	print("press ❎ to start",31,70,effect.blink)
 end
 
 function startgame()
@@ -875,6 +896,18 @@ function screenshake()
 	end
 end
 
+function blink()
+	effect.blinkframe += 1
+	if effect.blinkframe == effect.blinkspeed then
+		effect.blinkframe = 0
+		effect.blinkcolorindex += 1
+		if effect.blinkcolorindex > #effect.blinksequence then
+			effect.blinkcolorindex = 1
+		end
+		effect.blink = effect.blinksequence[effect.blinkcolorindex]
+	end
+end
+
 __gfx__
 0000000006777760066666600677776006777760f677776f06777760067777600000000000000000000000000000000000000000000000000000000000000000
 00000000659949556575775565b33b5565c1c1556508805565e22255658222550000000000000000000000000000000000000000000000000000000000000000
@@ -896,3 +929,4 @@ __sfx__
 000200002b360373603735037330373003a3000930015400000001340012400114001040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000200003c560367603675036730367003a3000930015400000001340012400114001040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000400001d7501f75021750257502b7503f3303f32038310017000370000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0008000013017130171f0271f027140271402721037210371503715047230472304717057170572505725057105070e5070c5070b5070a507085070750705507035070350701507150071600718007190071c007
