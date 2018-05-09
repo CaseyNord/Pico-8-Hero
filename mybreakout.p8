@@ -103,11 +103,14 @@ function _init()
 	effect = {
 		shake = 0,
 		countdown = -1,
+		gameovercountdown = -1,
 		blink = 7,
 		blinkframe = 0,
 		blinkspeed = 9,
 		blinkcolorindex = 1,
-		blinksequence = {3,11,7,11}
+		blinksequence01 = {3,11,7,11},
+		blinksequence02 = {0,5,6,7,6,5},
+		fadepercentage = 0
 	}
 
 	level = {
@@ -135,26 +138,41 @@ function _init()
 end
 
 function _update60()
-	blink()
+	if manager.mode == "startmenu" then
+		blink(effect.blinksequence01)
+	elseif manager.mode == "gameover" then
+		blink(effect.blinksequence02)
+	end
+
+	screenshake()
+
 	if manager.mode ==  "game" then
 		update_game()
 	elseif manager.mode == "startmenu" then
 		update_startmenu()
 	elseif manager.mode == "levelover" then
 		update_levelover()
+	elseif manager.mode == "gameoverwait" then
+		update_gameoverwait()
 	elseif manager.mode == "gameover" then
 		update_gameover()
 	end
 end
 
 function _draw()
-	screenshake()
+	--screenfade
+	if effect.fadepercentage ~= 0 then	
+		fadepal(effect.fadepercentage)
+	end
+
 	if manager.mode ==  "game" then
 		draw_game()
 	elseif manager.mode == "startmenu" then
 		draw_startmenu()
 	elseif manager.mode == "levelover" then
 		draw_levelover()
+	elseif manager.mode == "gameoverwait" then
+		draw_game()
 	elseif manager.mode == "gameover" then
 		draw_gameover()
 	end
@@ -168,17 +186,18 @@ function update_startmenu()
 	--blinking effects at game start
 	if effect.countdown < 0 then
 		if btnp(5) then
-			effect.countdown = 70
+			effect.countdown = 80
+			effect.blinkspeed = 1
 			sfx(11)
 		end
 	else
-	blink()
-	blink()
-	blink()
-	blink()
-		effect.countdown -= 1
+	effect.countdown -= 1
+	effect.fadepercentage = (80-effect.countdown)/80
 		if effect.countdown <= 0 then
-			effect.countdown -=1
+			effect.countdown = -1
+			effect.blinkspeed = 9
+			effect.fadepercentage = 0
+			pal()
 			startgame()
 		end
 	end
@@ -370,20 +389,46 @@ function nextlevel()
 	serveball()
 end
 
+function update_gameoverwait()
+	effect.gameovercountdown -= 1
+	if effect.gameovercountdown <= 0 then
+		effect.gameovercountdown = -1
+		manager.mode = "gameover"
+	end
+end
+
 function gameover()
-	manager.mode = "gameover"
+	manager.mode = "gameoverwait"
+	effect.gameovercountdown = 60
+	effect.blinkframe = 0 --resetting this prevents a green frame from appearing
+	effect.blinkspeed = 11
 end
 
 function update_gameover()
-	if btnp(5) then
-		startgame()
+	--blinking effects at gameover
+	if effect.gameovercountdown < 0 then
+		if btnp(5) then
+			effect.gameovercountdown = 80
+			effect.blinkspeed = 1
+			sfx(11)
+		end
+	else
+		effect.gameovercountdown -= 1
+		effect.fadepercentage = (80-effect.gameovercountdown)/80
+		if effect.gameovercountdown <= 0 then
+			effect.gameovercountdown = -1
+			effect.blinkspeed = 9
+			effect.fadepercentage = 0
+			pal()
+			startgame()
+		end
 	end
 end
 
 function draw_gameover()
 	rectfill(0,49,127,62,0)
 	print("gameover!",48,50,7)
-	print("press ❎ to restart",28,57,6)
+	print("press ❎ to restart",28,57,effect.blink)
 end
 
 function levelfinished()
@@ -896,17 +941,82 @@ function screenshake()
 	end
 end
 
-function blink()
+function blink(_blinksequence)
 	effect.blinkframe += 1
-	if effect.blinkframe == effect.blinkspeed then
+	if effect.blinkframe > effect.blinkspeed then
 		effect.blinkframe = 0
 		effect.blinkcolorindex += 1
-		if effect.blinkcolorindex > #effect.blinksequence then
+		if effect.blinkcolorindex > #_blinksequence then
 			effect.blinkcolorindex = 1
 		end
-		effect.blink = effect.blinksequence[effect.blinkcolorindex]
+		effect.blink = _blinksequence[effect.blinkcolorindex]
 	end
 end
+
+function fadepal(_perc)
+ -- this function sets the
+ -- color palette so everything
+ -- you draw afterwards will
+ -- appear darker
+ -- it accepts a number from
+ -- 0 means normal
+ -- 1 is completely black
+ -- this function has been
+ -- adapted from the jelpi.p8
+ -- demo
+ 
+ -- first we take our argument
+ -- and turn it into a 
+ -- percentage number (0-100)
+ -- also making sure its not
+ -- out of bounds  
+ local p=flr(mid(0,_perc,1)*100)
+ 
+ -- these are helper variables
+ local kmax,col,dpal,j,k
+ 
+ -- this is a table to do the
+ -- palette shifiting. it tells
+ -- what number changes into
+ -- what when it gets darker
+ -- so number 
+ -- 15 becomes 14
+ -- 14 becomes 13
+ -- 13 becomes 1
+ -- 12 becomes 3
+ -- etc...
+ dpal={0,1,1, 2,1,13,6,
+          4,4,9,3, 13,1,13,14}
+ 
+ -- now we go trough all colors
+ for j=1,15 do
+  --grab the current color
+  col = j
+  
+  --now calculate how many
+  --times we want to fade the
+  --color.
+  --this is a messy formula
+  --and not exact science.
+  --but basically when kmax
+  --reaches 5 every color gets 
+  --turns black.
+  kmax=(p+(j*1.46))/22
+  
+  --now we send the color 
+  --through our table kmax
+  --times to derive the final
+  --color
+  for k=1,kmax do
+   col=dpal[col]
+  end
+  
+  --finally, we change the
+  --palette
+  pal(j,col,1)
+ end
+end
+
 
 __gfx__
 0000000006777760066666600677776006777760f677776f06777760067777600000000000000000000000000000000000000000000000000000000000000000
