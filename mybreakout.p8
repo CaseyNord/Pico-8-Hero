@@ -1,5 +1,5 @@
 pico-8 cartridge // http://www.pico-8.com
-version 16
+version 18
 __lua__
 --goals
 --variable scope in functions
@@ -924,7 +924,10 @@ function deflection(_bx,_by,_bdx,_bdy,_tx,_ty,_tw,_th)
 	end
 end
 
--------- juicyness --------
+
+
+-->8
+-- juicyness --
 
 function screenshake()
 	local _x = 16-rnd(32)
@@ -1016,7 +1019,6 @@ function fadepal(_perc)
   pal(j,col,1)
  end
 end
-
 
 __gfx__
 0000000006777760066666600677776006777760f677776f06777760067777600000000000000000000000000000000000000000000000000000000000000000
