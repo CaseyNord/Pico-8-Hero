@@ -127,6 +127,8 @@ function _init()
 		fadepercentage = 0
 	}
 
+	ptcl={}
+
 	level = {
 		--x = empty space
 		--/ = new row
@@ -161,6 +163,8 @@ function _update60()
 		blink(effect.blinksequence02)
 	end
 
+	--always update particles so they can always be used!
+	update_particles()
 	screenshake()
 
 	if manager.mode ==  "game" then
@@ -429,6 +433,9 @@ function updateball(_i)
 		--update coordinates to move ball
 		_ballobj.x = nextx
 		_ballobj.y = nexty
+
+		--update ball trail
+		spawn_trail(nextx,nexty)
 		
 		--check floor
 		if nexty > playarea.floor then
@@ -485,33 +492,6 @@ end
 function draw_game()
 	rectfill(0,0,127,127,1)
 
-	--draw balls
-	for i=1,#ballobj do
-		circfill(ballobj[i].x,ballobj[i].y,ball.radius,ball.colour)
-	
-		if ballobj[i].sticky then
-			--animated serve preview dots
-			animate_arrow()
-			--dot one
-			pset(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult_1,
-			     ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult_1,
-				 ball.colour)
-			--dot two
-			pset(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult_2,
-			     ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult_2,
-				 ball.colour)
-			--serve preview line
-			-- line(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult,
-			--      ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult,
-			-- 	 ballobj[i].x+ballobj[i].dx*6*effect.arrow_mult,
-			-- 	 ballobj[i].y+ballobj[i].dy*6*effect.arrow_mult,
-			-- 	 ball.colour)
-		end
-	end
-
-	--draw paddle
-	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.colour)
-	
 	--draw bricks
 	for i=1,#brickobj do
 		if brickobj[i].visible then
@@ -543,7 +523,37 @@ function draw_game()
 		palt() --reset palette
 	end
 
-	--top screen banner
+	--draw particles
+	draw_particles()
+
+	--draw balls
+	for i=1,#ballobj do
+		circfill(ballobj[i].x,ballobj[i].y,ball.radius,ball.colour)
+	
+		if ballobj[i].sticky then
+			--animated serve preview dots
+			animate_arrow()
+			--dot one
+			pset(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult_1,
+			     ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult_1,
+				 ball.colour)
+			--dot two
+			pset(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult_2,
+			     ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult_2,
+				 ball.colour)
+			--serve preview line
+			-- line(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult,
+			--      ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult,
+			-- 	 ballobj[i].x+ballobj[i].dx*6*effect.arrow_mult,
+			-- 	 ballobj[i].y+ballobj[i].dy*6*effect.arrow_mult,
+			-- 	 ball.colour)
+		end
+	end
+
+	--draw paddle
+	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.colour)
+
+	--top screen banner (ui)
 	rectfill(0,0,128,6,0)
 	if manager.debug then
 		manager.debugvalue = powerup.timer
@@ -1071,6 +1081,54 @@ function fadepal(_perc)
   --palette
   pal(j,col,1)
  end
+end
+
+-->8
+-- particles --
+
+function add_particle(_x,_y,_type,_lifespan,_color,_old_color)
+	local _p={}
+	_p.x=_x
+	_p.y=_y
+	_p.type=_type
+	_p.color=_color
+	_p.old_color=_old_color
+	_p.lifespan=_lifespan
+	_p.age=0	
+	add(ptcl,_p)
+end
+
+function update_particles()
+	for i=#ptcl,1,-1 do
+		_p=ptcl[i]
+		_p.age+=1
+		if _p.age>_p.lifespan then
+			del(ptcl,ptcl[i])
+		else
+			if _p.age/_p.lifespan>0.5 then
+				_p.color=_p.old_color
+			end
+		end
+	end
+end
+
+function draw_particles()
+	for i=1,#ptcl do
+		_p=ptcl[i]
+		--pixel particles
+		if _p.type==0 then
+			pset(_p.x,_p.y,_p.color)
+		end
+	end
+end
+
+function spawn_trail(_x,_y)
+	--use trig to make sure particles spawn *around* ball
+	--(not in a square around the ball)
+	local _angle=rnd()
+	local _offset_x=sin(_angle)*ball.radius*0.5
+	local _offset_y=cos(_angle)*ball.radius*0.5
+	add_particle(_x+_offset_x,_y+_offset_y,0,15+rnd(15),10,9)
 end
 
 __gfx__
