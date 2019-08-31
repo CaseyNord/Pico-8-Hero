@@ -5,6 +5,13 @@ __lua__
 --variable scope in functions
 --fix level clear after brick explode
 --juicyness
+--	particles
+--	- death particles
+--	- brick particles
+--	- collision paticles
+-- 	- pickup particles
+--	- explosions
+--	- trails
 --	serve preview
 --	particles
 --		brick particles
