@@ -106,6 +106,10 @@ function _init()
 	effect = {
 		shake = 0,
 		countdown = -1,
+		arrow_anim_spd=30,
+		arrow_frame=0,
+		arrow_mult_1=1,
+		arrow_mult_2=1,
 		gameovercountdown = -1,
 		blink = 7,
 		blinkframe = 0,
@@ -181,7 +185,6 @@ function update_startmenu()
 		if effect.countdown <= 0 then
 			effect.countdown = -1
 			effect.blinkspeed = 9
-			effect.fadepercentage = 0
 			pal()
 			startgame()
 		end
@@ -191,7 +194,15 @@ end
 function update_game()
 	local buttonispressed = false
 	local nextx, nexty
-	
+
+	--fade in game
+	if effect.fadepercentage~=0 then
+		effect.fadepercentage-=0.05
+		if effect.fadepercentage<0 then
+			effect.fadepercentage=0
+		end
+	end
+
 	--left
 	if btn(0) then
 		paddle.dx = paddle.speed * -1
@@ -290,7 +301,6 @@ function update_gameover()
 		if effect.gameovercountdown <= 0 then
 			effect.gameovercountdown = -1
 			effect.blinkspeed = 9
-			effect.fadepercentage = 0
 			pal()
 			startgame()
 		end
@@ -438,11 +448,6 @@ end
 -- draw --
 
 function _draw()
-	--screenfade
-	if effect.fadepercentage ~= 0 then	
-		fadepal(effect.fadepercentage)
-	end
-
 	if manager.mode ==  "game" then
 		draw_game()
 	elseif manager.mode == "startmenu" then
@@ -453,6 +458,12 @@ function _draw()
 		draw_game()
 	elseif manager.mode == "gameover" then
 		draw_gameover()
+	end
+
+	--screenfade
+	pal()
+	if effect.fadepercentage ~= 0 then	
+		fadepal(effect.fadepercentage)
 	end
 end
 
@@ -472,8 +483,22 @@ function draw_game()
 		circfill(ballobj[i].x,ballobj[i].y,ball.radius,ball.colour)
 	
 		if ballobj[i].sticky then
-			--serve preview
-			line(ballobj[i].x+ballobj[i].dx*4,ballobj[i].y+ballobj[i].dy*4,ballobj[i].x+ballobj[i].dx*6,ballobj[i].y+ballobj[i].dy*6,ball.colour)
+			--animated serve preview dots
+			animate_arrow()
+			--dot one
+			pset(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult_1,
+			     ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult_1,
+				 ball.colour)
+			--dot two
+			pset(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult_2,
+			     ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult_2,
+				 ball.colour)
+			--serve preview line
+			-- line(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult,
+			--      ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult,
+			-- 	 ballobj[i].x+ballobj[i].dx*6*effect.arrow_mult,
+			-- 	 ballobj[i].y+ballobj[i].dy*6*effect.arrow_mult,
+			-- 	 ball.colour)
 		end
 	end
 
@@ -731,7 +756,7 @@ function spawnpill(_brickx,_bricky)
 	_pillobj.x = _brickx
 	_pillobj.y = _bricky
 	--_pillobj.kind = flr(rnd(7))+1
-	_pillobj.kind = 7
+	_pillobj.kind = 3
 	--[[ test powerups
 	t = flr(rnd(2))
 	if t == 1 then
@@ -967,6 +992,20 @@ function blink(_blinksequence)
 		end
 		effect.blink = _blinksequence[effect.blinkcolorindex]
 	end
+end
+
+function animate_arrow()
+	effect.arrow_frame+=1
+	if effect.arrow_frame>effect.arrow_anim_spd then
+		effect.arrow_frame=0
+	end
+	effect.arrow_mult_1=1+(2*(effect.arrow_frame/effect.arrow_anim_spd))
+
+	local arrow_frame_2=effect.arrow_frame+(effect.arrow_anim_spd/2)
+	if arrow_frame_2>effect.arrow_anim_spd then
+		arrow_frame_2=arrow_frame_2-effect.arrow_anim_spd
+	end
+	effect.arrow_mult_2=1+(2*(arrow_frame_2/effect.arrow_anim_spd))
 end
 
 function fadepal(_perc)
