@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 18
 __lua__
---goals
+-- goals --
 --variable scope in functions
 --fix level clear after brick explode
 --juicyness
@@ -43,46 +43,46 @@ game notes:
 function _init()
 	cls()
 
-	ball =	{
-		radius = 2,
-		colour = 10
+	ball={
+		radius=2,
+		colour=10
 	}
 
-	paddle = {
-		x = 30,
-		y = 120,
-		dx = 0,
-		speed = 2.5,
-		width = 24,
-		defaultwidth = 24,
-		height = 3,
-		colour = 7,
+	paddle={
+		x=30,
+		y=120,
+		dx=0,
+		speed=2.5,
+		width=24,
+		base_width = 24,
+		height=3,
+		colour=7,
 		sticky --intialized in serveball()
 	}
 
-	brick = {
-		width = 9,
-		height = 4,
-		colour = {
-			b = 14,
-			i = 6,
-			h = 15,
-			s = 9,
-			z = 8,
-			p = 12
+	brick={
+		width=9,
+		height=4,
+		colour={
+			b=14,
+			i=6,
+			h=15,
+			s=9,
+			z=8,
+			p=12
 		}
 	}
 
-	pill = {
-		speed = 0.6,
-		width = 8,
-		height = 6
+	pill={
+		speed=0.6,
+		width=8,
+		height=6
 	}
 
-	powerup = {
-		multiplier = 1,
-		kind = 0,
-		timer = {
+	powerup={
+		multiplier=1,
+		type=0,
+		timer={
 			slowdown, --intialized in serveball()
 			expand, --intialized in serveball()
 			reduce, --intialized in serveball()
@@ -90,46 +90,27 @@ function _init()
 		}
 	}
 
-	player = {
+	player={
 		points, --initialized in startgame()
 		combo, --initialized in startgame()
 		lives --initialized in startgame()
 	}
 
-	manager = {
-		mode = "startmenu",
-		levelnumber, --initialized in startgame()
-		debug = false,
-		debugvalue = 0 --change value at --top screen banner
+	manager={
+		mode="startmenu",
+		level_number, --initialized in startgame()
+		debug=false,
+		debug_value=0 --change value at --top screen banner
 	}
 	
-	playarea = {
-		left = 2,
-		right = 125,
-		ceiling = 9,
-		floor = 135
+	playarea={
+		left=2,
+		right=125,
+		ceiling=9,
+		floor=135
 	}
 
-	effect = {
-		shake = 0,
-		countdown = -1,
-		arrow_anim_spd=30,
-		arrow_frame=0,
-		arrow_mult_1=1,
-		arrow_mult_2=1,
-		gameovercountdown = -1,
-		blink = 7,
-		blinkframe = 0,
-		blinkspeed = 9,
-		blinkcolorindex = 1,
-		blinksequence01 = {3,11,7,11},
-		blinksequence02 = {0,5,6,7,6,5},
-		fadepercentage = 0
-	}
-
-	ptcl={}
-
-	level = {
+	level={
 		--x = empty space
 		--/ = new row
 		--b = normal brick
@@ -148,9 +129,29 @@ function _init()
 		"ib3xb3iib3xb3i/ib3xb3iib3xb3i/ib3xb3iib3xb3i", --lvl 5
 		"ib3xb3iibbsbxbsbbi/ib3xb3iibsbbxbbsbi/ib3xb3iibbsbxbsbbi", --lvl 6
 		--"////x4b/i9x", --bonus lvl?
-
-		--""
+		--"" --empty level?
 	}
+
+	-- global effect variables --
+	shake=0
+	countdown=-1
+	arrow_anim_spd=30
+	arrow_frame=0
+	arrow_mult_01=1
+	arrow_mult_02=1
+	gameover_countdown=-1
+	blink_frame=0
+	blink_speed=9
+	blink_color=7
+	blink_seq_index=1
+	blink_seq_01={3,11,7,11}
+	blink_seq_02={0,5,6,7,6,5}
+	fade_percentage=0
+
+	--global particle table
+	--(particles are handled by functions)
+	ptcl={}
+
 end
 
 -->8
@@ -158,9 +159,9 @@ end
 
 function _update60()
 	if manager.mode == "startmenu" then
-		blink(effect.blinksequence01)
+		blink(blink_seq_01)
 	elseif manager.mode == "gameover" then
-		blink(effect.blinksequence02)
+		blink(blink_seq_02)
 	end
 
 	--always update particles so they can always be used!
@@ -184,18 +185,18 @@ end
 
 function update_startmenu()
 	--blinking effects at game start
-	if effect.countdown < 0 then
+	if countdown < 0 then
 		if btnp(5) then
-			effect.countdown = 80
-			effect.blinkspeed = 1
+			countdown = 80
+			blink_speed = 1
 			sfx(11)
 		end
 	else
-	effect.countdown -= 1
-	effect.fadepercentage = (80-effect.countdown)/80
-		if effect.countdown <= 0 then
-			effect.countdown = -1
-			effect.blinkspeed = 9
+	countdown -= 1
+	fade_percentage = (80-countdown)/80
+		if countdown <= 0 then
+			countdown = -1
+			blink_speed = 9
 			pal()
 			startgame()
 		end
@@ -207,10 +208,10 @@ function update_game()
 	local nextx, nexty
 
 	--fade in game
-	if effect.fadepercentage~=0 then
-		effect.fadepercentage-=0.05
-		if effect.fadepercentage<0 then
-			effect.fadepercentage=0
+	if fade_percentage~=0 then
+		fade_percentage-=0.05
+		if fade_percentage<0 then
+			fade_percentage=0
 		end
 	end
 
@@ -242,12 +243,12 @@ function update_game()
 
 	--expand/reduce paddle powerups
 	if powerup.timer.expand > 0 then
-		paddle.width = flr(paddle.defaultwidth * 1.5)
+		paddle.width = flr(paddle.base_width * 1.5)
 	elseif powerup.timer.reduce > 0 then
-		paddle.width = flr(paddle.defaultwidth / 2)
+		paddle.width = flr(paddle.base_width / 2)
 		powerup.multiplier = 2
 	else
-		paddle.width = paddle.defaultwidth
+		paddle.width = paddle.base_width
 		powerup.multiplier = 1
 	end
 
@@ -265,7 +266,7 @@ function update_game()
 			del(pillobj,pillobj[i])
 		elseif boxcollide(pillobj[i].x,pillobj[i].y,pill.width,pill.height,paddle.x,paddle.y,paddle.width,paddle.height) then
 			sfx(10)
-			powerupget(pillobj[i].kind)
+			powerupget(pillobj[i].type)
 			del(pillobj,pillobj[i])
 		end
 	end
@@ -300,18 +301,18 @@ end
 
 function update_gameover()
 	--blinking effects at gameover
-	if effect.gameovercountdown < 0 then
+	if gameover_countdown < 0 then
 		if btnp(5) then
-			effect.gameovercountdown = 80
-			effect.blinkspeed = 1
+			gameover_countdown = 80
+			blink_speed = 1
 			sfx(11)
 		end
 	else
-		effect.gameovercountdown -= 1
-		effect.fadepercentage = (80-effect.gameovercountdown)/80
-		if effect.gameovercountdown <= 0 then
-			effect.gameovercountdown = -1
-			effect.blinkspeed = 9
+		gameover_countdown -= 1
+		fade_percentage = (80-gameover_countdown)/80
+		if gameover_countdown <= 0 then
+			gameover_countdown = -1
+			blink_speed = 9
 			pal()
 			startgame()
 		end
@@ -319,9 +320,9 @@ function update_gameover()
 end
 
 function update_gameoverwait()
-	effect.gameovercountdown -= 1
-	if effect.gameovercountdown <= 0 then
-		effect.gameovercountdown = -1
+	gameover_countdown -= 1
+	if gameover_countdown <= 0 then
+		gameover_countdown = -1
 		manager.mode = "gameover"
 	end
 end
@@ -415,7 +416,7 @@ function updateball(_i)
 			if brickobj[i].visible and hitbox(nextx,nexty,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then
 				--find out which direction to deflect
 				if not(brickhit) then
-					if powerup.kind == 6 and brickobj[i].kind == "i" or powerup.kind != 6 then
+					if powerup.type == 6 and brickobj[i].type == "i" or powerup.type != 6 then
 						--find out which direction to deflect
 						if deflection(_ballobj.x,_ballobj.y,_ballobj.dx,_ballobj.dy,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then	
 							_ballobj.dx = -_ballobj.dx
@@ -442,11 +443,11 @@ function updateball(_i)
 			sfx(00)
 			--lose multiball
 			if #ballobj > 1 then
-				effect.shake += 0.1
+				shake += 0.1
 				del(ballobj,_ballobj)
 			else
 				--death
-				effect.shake += 0.3
+				shake += 0.3
 				player.lives -= 1
 				if player.lives < 0 then
 					gameover()
@@ -476,8 +477,8 @@ function _draw()
 
 	--screenfade
 	pal()
-	if effect.fadepercentage ~= 0 then	
-		fadepal(effect.fadepercentage)
+	if fade_percentage ~= 0 then	
+		fadepal(fade_percentage)
 	end
 end
 
@@ -486,7 +487,7 @@ end
 function draw_startmenu()
 	rectfill(0,0,128,128,5)
 	print("breakout",48,50,7)
-	print("press ❎ to start",31,70,effect.blink)
+	print("press ❎ to start",31,70,blink_color)
 end
 
 function draw_game()
@@ -496,17 +497,17 @@ function draw_game()
 	for i=1,#brickobj do
 		if brickobj[i].visible then
 			local brickcolour
-			if brickobj[i].kind == "b" then
+			if brickobj[i].type == "b" then
 				brickcolour = brick.colour.b
-			elseif brickobj[i].kind == "i" then
+			elseif brickobj[i].type == "i" then
 				brickcolour = brick.colour.i
-			elseif brickobj[i].kind == "h" then
+			elseif brickobj[i].type == "h" then
 				brickcolour = brick.colour.h
-			elseif brickobj[i].kind == "s" then
+			elseif brickobj[i].type == "s" then
 				brickcolour = brick.colour.s
-			elseif brickobj[i].kind == "zz" or brickobj[i].kind == "z" then
+			elseif brickobj[i].type == "zz" or brickobj[i].type == "z" then
 				brickcolour = brick.colour.z
-			elseif brickobj[i].kind == "p" then
+			elseif brickobj[i].type == "p" then
 				brickcolour = brick.colour.p
 			end
 			rectfill(brickobj[i].x,brickobj[i].y,brickobj[i].x+brick.width,brickobj[i].y+brick.height,brickcolour)
@@ -515,11 +516,11 @@ function draw_game()
 
 	--draw pills
 	for i=1,#pillobj do
-		if pillobj[i].kind == 5 then
+		if pillobj[i].type == 5 then
 			palt(0,false) --display black (0)
 			palt(15,true) --don't display creme (15)
 		end
-		spr(pillobj[i].kind,pillobj[i].x,pillobj[i].y)
+		spr(pillobj[i].type,pillobj[i].x,pillobj[i].y)
 		palt() --reset palette
 	end
 
@@ -534,18 +535,18 @@ function draw_game()
 			--animated serve preview dots
 			animate_arrow()
 			--dot one
-			pset(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult_1,
-			     ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult_1,
+			pset(ballobj[i].x+ballobj[i].dx*4*arrow_mult_01,
+			     ballobj[i].y+ballobj[i].dy*4*arrow_mult_01,
 				 ball.colour)
 			--dot two
-			pset(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult_2,
-			     ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult_2,
+			pset(ballobj[i].x+ballobj[i].dx*4*arrow_mult_02,
+			     ballobj[i].y+ballobj[i].dy*4*arrow_mult_02,
 				 ball.colour)
 			--serve preview line
-			-- line(ballobj[i].x+ballobj[i].dx*4*effect.arrow_mult,
-			--      ballobj[i].y+ballobj[i].dy*4*effect.arrow_mult,
-			-- 	 ballobj[i].x+ballobj[i].dx*6*effect.arrow_mult,
-			-- 	 ballobj[i].y+ballobj[i].dy*6*effect.arrow_mult,
+			-- line(ballobj[i].x+ballobj[i].dx*4*arrow_mult,
+			--      ballobj[i].y+ballobj[i].dy*4*arrow_mult,
+			-- 	 ballobj[i].x+ballobj[i].dx*6*arrow_mult,
+			-- 	 ballobj[i].y+ballobj[i].dy*6*arrow_mult,
 			-- 	 ball.colour)
 		end
 	end
@@ -556,8 +557,8 @@ function draw_game()
 	--top screen banner (ui)
 	rectfill(0,0,128,6,0)
 	if manager.debug then
-		manager.debugvalue = powerup.timer
-		print("debug:"..manager.debugvalue,0,0,7)
+		manager.debug_value = powerup.timer
+		print("debug:"..manager.debug_value,0,0,7)
 	else
 		print("lives:"..player.lives,0,0,7)
 		print("points:"..player.points,68,0,7)
@@ -574,7 +575,7 @@ end
 function draw_gameover()
 	rectfill(0,49,127,62,0)
 	print("gameover!",48,50,7)
-	print("press ❎ to restart",28,57,effect.blink)
+	print("press ❎ to restart",28,57,blink_color)
 end
 
 -->8
@@ -586,11 +587,11 @@ end
 
 function startgame()
 	manager.mode = "game"
-	manager.levelnumber = 1
+	manager.level_number = 1
 	player.points = 0
 	player.combo = 0 --combo chain multiplier
 	player.lives = 3
-	buildbricks(level[manager.levelnumber])
+	buildbricks(level[manager.level_number])
 	serveball()
 end
 
@@ -599,29 +600,29 @@ function levelover()
 end
 
 function nextlevel()
-	manager.levelnumber += 1
-	if manager.levelnumber > #level then
+	manager.level_number += 1
+	if manager.level_number > #level then
 		--game has been completed
 		return startmenu()
 	end
 	manager.mode = "game"
 	player.combo = 0 --combo chain multiplier
 	player.lives = 3
-	buildbricks(level[manager.levelnumber])
+	buildbricks(level[manager.level_number])
 	serveball()
 end
 
 function gameover()
 	manager.mode = "gameoverwait"
-	effect.gameovercountdown = 60
-	effect.blinkframe = 0 --resetting this prevents a green frame from appearing
-	effect.blinkspeed = 11
+	gameover_countdown = 60
+	blink_frame = 0 --resetting this prevents a green frame from appearing
+	blink_speed = 11
 end
 
 function levelfinished()
 	if #brickobj == 0 then return false end --don't finish level if explicitly empty
 	for i=1,#brickobj do
-		if brickobj[i].visible and brickobj[i].kind != "i" then
+		if brickobj[i].visible and brickobj[i].type != "i" then
 			return false
 		end
 	end
@@ -648,15 +649,15 @@ end
 function powerupget(_powerup)
 	if _powerup == 1 then
 		--slowdown
-		powerup.kind = 1
+		powerup.type = 1
 		powerup.timer.slowdown = 600
 	elseif _powerup == 2 then
 		--lifeup
-		powerup.kind = 0
+		powerup.type = 0
 		player.lives += 1
 	elseif _powerup == 3 then
 		--catch
-		powerup.kind = 3
+		powerup.type = 3
 		paddle.sticky = true
 		--prevents 'handoff' if a ball is already stuck to paddle
 		for i=1,#ballobj do
@@ -666,31 +667,31 @@ function powerupget(_powerup)
 		end
 	elseif _powerup == 4 then
 		--expand
-		powerup.kind = 4
+		powerup.type = 4
 		powerup.timer.reduce = 0
 		powerup.timer.expand = 600
 	elseif _powerup == 5 then
 		--reduce
-		powerup.kind = 5
+		powerup.type = 5
 		powerup.timer.expand = 0
 		powerup.timer.reduce = 600
 	elseif _powerup == 6 then
 		--megaball
-		powerup.kind = 6
+		powerup.type = 6
 		powerup.timer.megaball = 600
 	elseif _powerup == 7 then
 		--multiball
-		powerup.kind = 7
+		powerup.type = 7
 		multiball()
 	end
 end
 
-function addbrick(_index,_kind)
+function addbrick(_index,_type)
 	local _brickobj = {}
 	_brickobj.x = 4+((_index-1)%11)*(brick.width+2)
 	_brickobj.y = 20+flr((_index-1)/11)*(brick.height+2)
 	_brickobj.visible = true
-	_brickobj.kind = _kind
+	_brickobj.type = _type
 	add(brickobj,_brickobj)
 end
 
@@ -732,14 +733,14 @@ function buildbricks(_lvl)
 end
 
 function hitbrick(_i,_combo)
-	if brickobj[_i].kind == "b" then
+	if brickobj[_i].type == "b" then
 		sfx(02+player.combo)
 		brickobj[_i].visible = false
 		player.points += 10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
-	elseif brickobj[_i].kind == "i" then
+	elseif brickobj[_i].type == "i" then
 		sfx(09)
-	elseif brickobj[_i].kind == "h" then
+	elseif brickobj[_i].type == "h" then
 		if powerup.timer.megaball > 0 then
 			sfx(02+player.combo)
 			brickobj[_i].visible = false
@@ -747,14 +748,14 @@ function hitbrick(_i,_combo)
 			combo(_combo)
 		else
 			sfx(09)
-			brickobj[_i].kind = "b"
+			brickobj[_i].type = "b"
 		end
-	elseif brickobj[_i].kind == "s" then
+	elseif brickobj[_i].type == "s" then
 		sfx(02+player.combo)
-		brickobj[_i].kind = "zz"				
+		brickobj[_i].type = "zz"				
 		player.points += 10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
-	elseif brickobj[_i].kind == "p" then
+	elseif brickobj[_i].type == "p" then
 		sfx(02+player.combo)
 		brickobj[_i].visible = false				
 		player.points += 10*(player.combo+1)*powerup.multiplier
@@ -772,14 +773,14 @@ function spawnpill(_brickx,_bricky)
 	local _pillobj = {}
 	_pillobj.x = _brickx
 	_pillobj.y = _bricky
-	--_pillobj.kind = flr(rnd(7))+1
-	_pillobj.kind = 3
+	--_pillobj.type = flr(rnd(7))+1
+	_pillobj.type = 3
 	--[[ test powerups
 	t = flr(rnd(2))
 	if t == 1 then
-		_pillobj.kind = 3
+		_pillobj.type = 3
 	else
-		_pillobj.kind = 7
+		_pillobj.type = 7
 	end
 	]]
 	
@@ -795,18 +796,18 @@ end
 
 function checkforexplosions()
 	for i=1,#brickobj do
-		if brickobj[i].kind == "z" and brickobj[i].visible then
+		if brickobj[i].type == "z" and brickobj[i].visible then
 			brickexplode(i)
 			--brick explosion effect
-			effect.shake += 0.2
-			if effect.shake > 1 then
-				effect.shake = 1
+			shake += 0.2
+			if shake > 1 then
+				shake = 1
 			end
 		end
 	end
 	for i=1,#brickobj do
-		if brickobj[i].kind == "zz" then
-			brickobj[i].kind = "z"
+		if brickobj[i].type == "zz" then
+			brickobj[i].type = "z"
 		end
 	end
 end
@@ -885,7 +886,7 @@ function serveball()
 	stickyx = flr(paddle.width/2) --necessary here for catch powerup
 
 	player.combo = 0
-	powerup.kind = 0
+	powerup.type = 0
 	powerup.timer.slowdown = 0
 	powerup.timer.expand = 0
 	powerup.timer.reduce = 0
@@ -988,41 +989,41 @@ function screenshake()
 	local _x = 16-rnd(32)
 	local _y = 16-rnd(32)
 
-	_x *= effect.shake
-	_y *= effect.shake
+	_x *= shake
+	_y *= shake
 
 	camera(_x,_y)
 
-	effect.shake *= 0.95
-	if effect.shake < 0.05 then
-		effect.shake = 0
+	shake *= 0.95
+	if shake < 0.05 then
+		shake = 0
 	end
 end
 
 function blink(_blinksequence)
-	effect.blinkframe += 1
-	if effect.blinkframe > effect.blinkspeed then
-		effect.blinkframe = 0
-		effect.blinkcolorindex += 1
-		if effect.blinkcolorindex > #_blinksequence then
-			effect.blinkcolorindex = 1
+	blink_frame += 1
+	if blink_frame > blink_speed then
+		blink_frame = 0
+		blink_seq_index += 1
+		if blink_seq_index > #_blinksequence then
+			blink_seq_index = 1
 		end
-		effect.blink = _blinksequence[effect.blinkcolorindex]
+		blink_color = _blinksequence[blink_seq_index]
 	end
 end
 
 function animate_arrow()
-	effect.arrow_frame+=1
-	if effect.arrow_frame>effect.arrow_anim_spd then
-		effect.arrow_frame=0
+	arrow_frame+=1
+	if arrow_frame>arrow_anim_spd then
+		arrow_frame=0
 	end
-	effect.arrow_mult_1=1+(2*(effect.arrow_frame/effect.arrow_anim_spd))
+	arrow_mult_01=1+(2*(arrow_frame/arrow_anim_spd))
 
-	local arrow_frame_2=effect.arrow_frame+(effect.arrow_anim_spd/2)
-	if arrow_frame_2>effect.arrow_anim_spd then
-		arrow_frame_2=arrow_frame_2-effect.arrow_anim_spd
+	local arrow_frame_2=arrow_frame+(arrow_anim_spd/2)
+	if arrow_frame_2>arrow_anim_spd then
+		arrow_frame_2=arrow_frame_2-arrow_anim_spd
 	end
-	effect.arrow_mult_2=1+(2*(arrow_frame_2/effect.arrow_anim_spd))
+	arrow_mult_02=1+(2*(arrow_frame_2/arrow_anim_spd))
 end
 
 function fadepal(_perc)
