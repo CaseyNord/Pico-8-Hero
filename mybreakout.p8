@@ -30,6 +30,9 @@ game notes:
 
 ]]
 
+-->8
+-- init --
+
 function _init()
 	cls()
 
@@ -137,6 +140,9 @@ function _init()
 	}
 end
 
+-->8
+-- update --
+
 function _update60()
 	if manager.mode == "startmenu" then
 		blink(effect.blinksequence01)
@@ -159,28 +165,7 @@ function _update60()
 	end
 end
 
-function _draw()
-	--screenfade
-	if effect.fadepercentage ~= 0 then	
-		fadepal(effect.fadepercentage)
-	end
-
-	if manager.mode ==  "game" then
-		draw_game()
-	elseif manager.mode == "startmenu" then
-		draw_startmenu()
-	elseif manager.mode == "levelover" then
-		draw_levelover()
-	elseif manager.mode == "gameoverwait" then
-		draw_game()
-	elseif manager.mode == "gameover" then
-		draw_gameover()
-	end
-end
-
-function startmenu()
-	manager.mode = "startmenu"
-end
+-- update functions --
 
 function update_startmenu()
 	--blinking effects at game start
@@ -201,22 +186,6 @@ function update_startmenu()
 			startgame()
 		end
 	end
-end
-
-function draw_startmenu()
-	rectfill(0,0,128,128,5)
-	print("breakout",48,50,7)
-	print("press ❎ to start",31,70,effect.blink)
-end
-
-function startgame()
-	manager.mode = "game"
-	manager.levelnumber = 1
-	player.points = 0
-	player.combo = 0 --combo chain multiplier
-	player.lives = 3
-	buildbricks(level[manager.levelnumber])
-	serveball()
 end
 
 function update_game()
@@ -301,107 +270,10 @@ function update_game()
 	end
 end
 
-function draw_game()
-	rectfill(0,0,127,127,1)
-
-	--draw balls
-	for i=1,#ballobj do
-		circfill(ballobj[i].x,ballobj[i].y,ball.radius,ball.colour)
-	
-		if ballobj[i].sticky then
-			--serve preview
-			line(ballobj[i].x+ballobj[i].dx*4,ballobj[i].y+ballobj[i].dy*4,ballobj[i].x+ballobj[i].dx*6,ballobj[i].y+ballobj[i].dy*6,ball.colour)
-		end
-	end
-
-	--draw paddle
-	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.colour)
-	
-	--draw bricks
-	for i=1,#brickobj do
-		if brickobj[i].visible then
-			local brickcolour
-			if brickobj[i].kind == "b" then
-				brickcolour = brick.colour.b
-			elseif brickobj[i].kind == "i" then
-				brickcolour = brick.colour.i
-			elseif brickobj[i].kind == "h" then
-				brickcolour = brick.colour.h
-			elseif brickobj[i].kind == "s" then
-				brickcolour = brick.colour.s
-			elseif brickobj[i].kind == "zz" or brickobj[i].kind == "z" then
-				brickcolour = brick.colour.z
-			elseif brickobj[i].kind == "p" then
-				brickcolour = brick.colour.p
-			end
-			rectfill(brickobj[i].x,brickobj[i].y,brickobj[i].x+brick.width,brickobj[i].y+brick.height,brickcolour)
-		end
-	end
-
-	--draw pills
-	for i=1,#pillobj do
-		if pillobj[i].kind == 5 then
-			palt(0,false) --display black (0)
-			palt(15,true) --don't display creme (15)
-		end
-		spr(pillobj[i].kind,pillobj[i].x,pillobj[i].y)
-		palt() --reset palette
-	end
-
-	--top screen banner
-	rectfill(0,0,128,6,0)
-	if manager.debug then
-		manager.debugvalue = powerup.timer
-		print("debug:"..manager.debugvalue,0,0,7)
-	else
-		print("lives:"..player.lives,0,0,7)
-		print("points:"..player.points,68,0,7)
-		print("combo:"..player.combo,34,0,7)
-	end
-end
-
-function levelover()
-	manager.mode = "levelover"
-end
-
 function update_levelover()
 	if btnp(5) then
 		nextlevel()
 	end
-end
-
-function draw_levelover()
-	rectfill(0,49,127,62,0)
-	print("stage clear!",40,50,7)
-	print("press ❎ to continue",24,57,6)
-end
-
-function nextlevel()
-	manager.levelnumber += 1
-	if manager.levelnumber > #level then
-		--game has been completed
-		return startmenu()
-	end
-	manager.mode = "game"
-	player.combo = 0 --combo chain multiplier
-	player.lives = 3
-	buildbricks(level[manager.levelnumber])
-	serveball()
-end
-
-function update_gameoverwait()
-	effect.gameovercountdown -= 1
-	if effect.gameovercountdown <= 0 then
-		effect.gameovercountdown = -1
-		manager.mode = "gameover"
-	end
-end
-
-function gameover()
-	manager.mode = "gameoverwait"
-	effect.gameovercountdown = 60
-	effect.blinkframe = 0 --resetting this prevents a green frame from appearing
-	effect.blinkspeed = 11
 end
 
 function update_gameover()
@@ -425,20 +297,12 @@ function update_gameover()
 	end
 end
 
-function draw_gameover()
-	rectfill(0,49,127,62,0)
-	print("gameover!",48,50,7)
-	print("press ❎ to restart",28,57,effect.blink)
-end
-
-function levelfinished()
-	if #brickobj == 0 then return false end --don't finish level if explicitly empty
-	for i=1,#brickobj do
-		if brickobj[i].visible and brickobj[i].kind != "i" then
-			return false
-		end
+function update_gameoverwait()
+	effect.gameovercountdown -= 1
+	if effect.gameovercountdown <= 0 then
+		effect.gameovercountdown = -1
+		manager.mode = "gameover"
 	end
-	return true
 end
 
 function updateball(_i)
@@ -568,6 +432,158 @@ function updateball(_i)
 			end
 		end	
 	end
+end
+
+-->8
+-- draw --
+
+function _draw()
+	--screenfade
+	if effect.fadepercentage ~= 0 then	
+		fadepal(effect.fadepercentage)
+	end
+
+	if manager.mode ==  "game" then
+		draw_game()
+	elseif manager.mode == "startmenu" then
+		draw_startmenu()
+	elseif manager.mode == "levelover" then
+		draw_levelover()
+	elseif manager.mode == "gameoverwait" then
+		draw_game()
+	elseif manager.mode == "gameover" then
+		draw_gameover()
+	end
+end
+
+-- draw functions --
+
+function draw_startmenu()
+	rectfill(0,0,128,128,5)
+	print("breakout",48,50,7)
+	print("press ❎ to start",31,70,effect.blink)
+end
+
+function draw_game()
+	rectfill(0,0,127,127,1)
+
+	--draw balls
+	for i=1,#ballobj do
+		circfill(ballobj[i].x,ballobj[i].y,ball.radius,ball.colour)
+	
+		if ballobj[i].sticky then
+			--serve preview
+			line(ballobj[i].x+ballobj[i].dx*4,ballobj[i].y+ballobj[i].dy*4,ballobj[i].x+ballobj[i].dx*6,ballobj[i].y+ballobj[i].dy*6,ball.colour)
+		end
+	end
+
+	--draw paddle
+	rectfill(paddle.x,paddle.y,paddle.x+paddle.width,paddle.y+paddle.height,paddle.colour)
+	
+	--draw bricks
+	for i=1,#brickobj do
+		if brickobj[i].visible then
+			local brickcolour
+			if brickobj[i].kind == "b" then
+				brickcolour = brick.colour.b
+			elseif brickobj[i].kind == "i" then
+				brickcolour = brick.colour.i
+			elseif brickobj[i].kind == "h" then
+				brickcolour = brick.colour.h
+			elseif brickobj[i].kind == "s" then
+				brickcolour = brick.colour.s
+			elseif brickobj[i].kind == "zz" or brickobj[i].kind == "z" then
+				brickcolour = brick.colour.z
+			elseif brickobj[i].kind == "p" then
+				brickcolour = brick.colour.p
+			end
+			rectfill(brickobj[i].x,brickobj[i].y,brickobj[i].x+brick.width,brickobj[i].y+brick.height,brickcolour)
+		end
+	end
+
+	--draw pills
+	for i=1,#pillobj do
+		if pillobj[i].kind == 5 then
+			palt(0,false) --display black (0)
+			palt(15,true) --don't display creme (15)
+		end
+		spr(pillobj[i].kind,pillobj[i].x,pillobj[i].y)
+		palt() --reset palette
+	end
+
+	--top screen banner
+	rectfill(0,0,128,6,0)
+	if manager.debug then
+		manager.debugvalue = powerup.timer
+		print("debug:"..manager.debugvalue,0,0,7)
+	else
+		print("lives:"..player.lives,0,0,7)
+		print("points:"..player.points,68,0,7)
+		print("combo:"..player.combo,34,0,7)
+	end
+end
+
+function draw_levelover()
+	rectfill(0,49,127,62,0)
+	print("stage clear!",40,50,7)
+	print("press ❎ to continue",24,57,6)
+end
+
+function draw_gameover()
+	rectfill(0,49,127,62,0)
+	print("gameover!",48,50,7)
+	print("press ❎ to restart",28,57,effect.blink)
+end
+
+-->8
+-- functions --
+
+function startmenu()
+	manager.mode = "startmenu"
+end
+
+function startgame()
+	manager.mode = "game"
+	manager.levelnumber = 1
+	player.points = 0
+	player.combo = 0 --combo chain multiplier
+	player.lives = 3
+	buildbricks(level[manager.levelnumber])
+	serveball()
+end
+
+function levelover()
+	manager.mode = "levelover"
+end
+
+function nextlevel()
+	manager.levelnumber += 1
+	if manager.levelnumber > #level then
+		--game has been completed
+		return startmenu()
+	end
+	manager.mode = "game"
+	player.combo = 0 --combo chain multiplier
+	player.lives = 3
+	buildbricks(level[manager.levelnumber])
+	serveball()
+end
+
+function gameover()
+	manager.mode = "gameoverwait"
+	effect.gameovercountdown = 60
+	effect.blinkframe = 0 --resetting this prevents a green frame from appearing
+	effect.blinkspeed = 11
+end
+
+function levelfinished()
+	if #brickobj == 0 then return false end --don't finish level if explicitly empty
+	for i=1,#brickobj do
+		if brickobj[i].visible and brickobj[i].kind != "i" then
+			return false
+		end
+	end
+	return true
 end
 
 function releasecurrentsticky()
@@ -725,7 +741,6 @@ function spawnpill(_brickx,_bricky)
 	end
 	]]
 	
-
 	add(pillobj,_pillobj)
 end
 
@@ -924,8 +939,6 @@ function deflection(_bx,_by,_bdx,_bdy,_tx,_ty,_tw,_th)
 	end
 end
 
-
-
 -->8
 -- juicyness --
 
@@ -957,16 +970,11 @@ function blink(_blinksequence)
 end
 
 function fadepal(_perc)
- -- this function sets the
- -- color palette so everything
- -- you draw afterwards will
- -- appear darker
- -- it accepts a number from
+ -- by krystman [#34135#]
+ -- create fade by altering
+ -- color palette
  -- 0 means normal
  -- 1 is completely black
- -- this function has been
- -- adapted from the jelpi.p8
- -- demo
  
  -- first we take our argument
  -- and turn it into a 
@@ -988,8 +996,7 @@ function fadepal(_perc)
  -- 13 becomes 1
  -- 12 becomes 3
  -- etc...
- dpal={0,1,1, 2,1,13,6,
-          4,4,9,3, 13,1,13,14}
+ dpal={0,1,1,2,1,13,6,4,4,9,3,13,1,13,14}
  
  -- now we go trough all colors
  for j=1,15 do
