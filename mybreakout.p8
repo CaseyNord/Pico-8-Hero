@@ -1091,27 +1091,33 @@ end
 -->8
 -- particles --
 
-function add_particle(_x,_y,_type,_lifespan,_color,_old_color)
+function add_particle(_x,_y,_type,_lifespan,_color)
 	local _p={}
 	_p.x=_x
 	_p.y=_y
 	_p.type=_type
-	_p.color=_color
-	_p.old_color=_old_color
 	_p.lifespan=_lifespan
 	_p.age=0	
+	_p.color=0
+	_p.color_array=_color
 	add(ptcl,_p)
 end
 
 function update_particles()
 	for i=#ptcl,1,-1 do
-		_p=ptcl[i]
+		local _p=ptcl[i]
 		_p.age+=1
 		if _p.age>_p.lifespan then
 			del(ptcl,ptcl[i])
 		else
-			if _p.age/_p.lifespan>0.5 then
-				_p.color=_p.old_color
+			if #_p.color_array==1 then
+				_p.color=_p.color_array[1]
+			else
+				--dynamically determine color array index based
+				--on lifespand and array size
+				local _color_index=_p.age/_p.lifespan
+				_color_index=flr(_color_index*#_p.color_array)+1
+				_p.color=_p.color_array[_color_index]
 			end
 		end
 	end
@@ -1134,7 +1140,7 @@ function spawn_trail(_x,_y)
 		local _angle=rnd()
 		local _offset_x=sin(_angle)*ball.radius*0.5
 		local _offset_y=cos(_angle)*ball.radius*0.5
-	add_particle(_x+_offset_x,_y+_offset_y,0,15+rnd(15),10,9)
+	add_particle(_x+_offset_x,_y+_offset_y,0,15+rnd(15),{10,9})
 	end
 end
 
