@@ -790,13 +790,17 @@ end
 
 --not collision, rather managing what happens gamewise when bricks are hit
 function hit_brick(_i,_combo)
+	--regular brick
 	if brickobj[_i].type=="b" then
 		sfx(02+player.combo)
+		shatter_brick(brickobj[_i])
 		brickobj[_i].visible=false
 		player.points+=10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
+	--invincible brick
 	elseif brickobj[_i].type=="i" then
 		sfx(09)
+	--hardened brick
 	elseif brickobj[_i].type=="h" then
 		if powerup.timer.megaball>0 then
 			sfx(02+player.combo)
@@ -807,13 +811,16 @@ function hit_brick(_i,_combo)
 			sfx(09)
 			brickobj[_i].type="b"
 		end
+	--explosion brick
 	elseif brickobj[_i].type=="s" then
 		sfx(02+player.combo)
 		brickobj[_i].type="zz"				
 		player.points+=10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
+	--powerup brick
 	elseif brickobj[_i].type=="p" then
 		sfx(02+player.combo)
+		shatter_brick(brickobj[_i])
 		brickobj[_i].visible=false				
 		player.points+=10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
@@ -1091,10 +1098,12 @@ end
 -->8
 -- particles --
 
-function add_particle(_x,_y,_type,_lifespan,_color)
+function add_particle(_x,_y,_dx,_dy,_type,_lifespan,_color)
 	local _p={}
 	_p.x=_x
 	_p.y=_y
+	_p.dx=_dx
+	_p.dy=_dy
 	_p.type=_type
 	_p.lifespan=_lifespan
 	_p.age=0	
@@ -1110,6 +1119,7 @@ function update_particles()
 		if _p.age>_p.lifespan then
 			del(ptcl,ptcl[i])
 		else
+			--change colors
 			if #_p.color_array==1 then
 				_p.color=_p.color_array[1]
 			else
@@ -1119,17 +1129,35 @@ function update_particles()
 				_color_index=flr(_color_index*#_p.color_array)+1
 				_p.color=_p.color_array[_color_index]
 			end
+
+			--apply gravity
+			if _p.type==1 then
+				_p.dy+=0.1
+			end
+
+			--move particle
+			_p.x+=_p.dx
+			_p.y+=_p.dy
 		end
 	end
 end
 
 function draw_particles()
 	for i=1,#ptcl do
-		_p=ptcl[i]
+		local _p=ptcl[i]
 		--pixel particles
-		if _p.type==0 then
+		if _p.type==0 or _p.type==1 then
 			pset(_p.x,_p.y,_p.color)
 		end
+	end
+end
+
+function shatter_brick(_brick)
+	for i=0,10 do
+		local _angle=rnd()
+		local _dx=sin(_angle)*1
+		local _dy=cos(_angle)*1
+		add_particle(_brick.x,_brick.y,_dx,_dy,1,60,{7})
 	end
 end
 
@@ -1140,7 +1168,7 @@ function spawn_trail(_x,_y)
 		local _angle=rnd()
 		local _offset_x=sin(_angle)*ball.radius*0.5
 		local _offset_y=cos(_angle)*ball.radius*0.5
-	add_particle(_x+_offset_x,_y+_offset_y,0,15+rnd(15),{10,9})
+		add_particle(_x+_offset_x,_y+_offset_y,0,0,0,15+rnd(15),{10,9})
 	end
 end
 
