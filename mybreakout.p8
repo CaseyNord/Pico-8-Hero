@@ -99,8 +99,7 @@ function _init()
 	manager={
 		mode="startmenu",
 		level_number, --initialized in start_game()
-		debug=false,
-		debug_value=0 --change value at --top screen banner
+		debug=false
 	}
 	
 	playarea={
@@ -573,7 +572,7 @@ function draw_game()
 	rectfill(0,0,128,6,0)
 	if manager.debug then
 		manager.debug_value=powerup.timer
-		print("debug:"..manager.debug_value,0,0,7)
+		print("cpu:"..stat(1),0,0,7)
 	else
 		print("lives:"..player.lives,0,0,7)
 		print("points:"..player.points,68,0,7)
