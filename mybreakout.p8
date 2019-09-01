@@ -8,22 +8,17 @@ __lua__
 --	particles
 --	- death particles
 --	- brick particles
---	- collision paticles
+--	- collision particles
 -- 	- pickup particles
 --	- explosions
---	- trails
---	serve preview
---	particles
---		brick particles
---		death particles
---		collision particles
 --level setup
---	arrow animation
---	text blinking
 --high score 
 --ui
 --	powerup messages
 --	powerup percentage bar
+--better collision
+--gameplay tweaks
+--	- smaller paddle
 --game complete
 
 --[[
