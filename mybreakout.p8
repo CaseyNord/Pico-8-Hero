@@ -158,9 +158,9 @@ end
 -- update --
 
 function _update60()
-	if manager.mode == "startmenu" then
+	if manager.mode=="startmenu" then
 		blink(blink_seq_01)
-	elseif manager.mode == "gameover" then
+	elseif manager.mode=="gameover" then
 		blink(blink_seq_02)
 	end
 
@@ -168,15 +168,15 @@ function _update60()
 	update_particles()
 	screenshake()
 
-	if manager.mode ==  "game" then
+	if manager.mode=="game" then
 		update_game()
-	elseif manager.mode == "startmenu" then
+	elseif manager.mode=="startmenu" then
 		update_startmenu()
-	elseif manager.mode == "levelover" then
+	elseif manager.mode=="levelover" then
 		update_levelover()
-	elseif manager.mode == "gameoverwait" then
+	elseif manager.mode=="gameoverwait" then
 		update_gameoverwait()
-	elseif manager.mode == "gameover" then
+	elseif manager.mode=="gameover" then
 		update_gameover()
 	end
 end
@@ -185,18 +185,52 @@ end
 
 function update_startmenu()
 	--blinking effects at game start
-	if countdown < 0 then
+	if countdown<0 then
 		if btnp(5) then
-			countdown = 80
-			blink_speed = 1
+			countdown=80
+			blink_speed=1
 			sfx(11)
 		end
 	else
-	countdown -= 1
-	fade_percentage = (80-countdown)/80
-		if countdown <= 0 then
-			countdown = -1
-			blink_speed = 9
+	countdown-=1
+	fade_percentage=(80-countdown)/80
+		if countdown<=0 then
+			countdown=-1
+			blink_speed=9
+			pal()
+			startgame()
+		end
+	end
+end
+
+function update_levelover()
+	if btnp(5) then
+		nextlevel()
+	end
+end
+
+function update_gameoverwait()
+    gameover_countdown-=1
+    if gameover_countdown<=0 then
+        gameover_countdown=-1
+        manager.mode="gameover"
+    end
+end
+
+function update_gameover()
+	--blinking effects at gameover
+	if gameover_countdown<0 then
+		if btnp(5) then
+			gameover_countdown=80
+			blink_speed=1
+			sfx(11)
+		end
+	else
+		gameover_countdown-=1
+		fade_percentage=(80-gameover_countdown)/80
+		if gameover_countdown<= 0then
+			gameover_countdown=-1
+			blink_speed=9
 			pal()
 			startgame()
 		end
@@ -204,9 +238,9 @@ function update_startmenu()
 end
 
 function update_game()
-	local buttonispressed = false
-	local nextx, nexty
-
+	--todo: menu may not currently appear when game is cleared because
+	--		it doesn't have fade if.  check into this.  if that is the
+	--		case write this into a method so it can be called there too
 	--fade in game
 	if fade_percentage~=0 then
 		fade_percentage-=0.05
@@ -215,16 +249,17 @@ function update_game()
 		end
 	end
 
+	local _button_is_pressed=false
 	--left
 	if btn(0) then
-		paddle.dx = paddle.speed * -1
-	 	buttonispressed = true
+		paddle.dx=paddle.speed*-1
+	 	_button_is_pressed=true
 		stickyaim(-1)
 	end	
 	--right
 	if btn(1) then
-		paddle.dx = paddle.speed
-		buttonispressed = true
+		paddle.dx=paddle.speed
+		_button_is_pressed=true
 		stickyaim(1)
 	end
 
@@ -234,26 +269,26 @@ function update_game()
 	end
 	
 	--paddle friction slowdown
-	if not (buttonispressed) then
-		paddle.dx /= 1.2
+	if not (_button_is_pressed) then
+		paddle.dx/=1.2
 	end
 	
 	--paddle speed
-	paddle.x += paddle.dx
+	paddle.x+=paddle.dx
 
 	--expand/reduce paddle powerups
-	if powerup.timer.expand > 0 then
-		paddle.width = flr(paddle.base_width * 1.5)
-	elseif powerup.timer.reduce > 0 then
-		paddle.width = flr(paddle.base_width / 2)
-		powerup.multiplier = 2
+	if powerup.timer.expand>0 then
+		paddle.width=flr(paddle.base_width*1.5)
+	elseif powerup.timer.reduce>0 then
+		paddle.width=flr(paddle.base_width/2)
+		powerup.multiplier=2
 	else
-		paddle.width = paddle.base_width
-		powerup.multiplier = 1
+		paddle.width=paddle.base_width
+		powerup.multiplier=1
 	end
 
 	--stop paddle at screen edge
- 	paddle.x =	mid(2,paddle.x,125-paddle.width)
+ 	paddle.x=mid(2,paddle.x,125-paddle.width)
 
 	for i=#ballobj,1,-1 do
 		updateball(i)
@@ -279,116 +314,84 @@ function update_game()
 	end
 
 	--powerup clock update
-	if powerup.timer.slowdown > 0 then
-		powerup.timer.slowdown -=1
+	if powerup.timer.slowdown>0 then
+		powerup.timer.slowdown-=1
 	end
-	if powerup.timer.expand > 0 then
-		powerup.timer.expand -=1
+	if powerup.timer.expand>0 then
+		powerup.timer.expand-=1
 	end
-	if powerup.timer.reduce > 0 then
-		powerup.timer.reduce -=1
+	if powerup.timer.reduce>0 then
+		powerup.timer.reduce-=1
 	end
-	if powerup.timer.megaball > 0 then
-		powerup.timer.megaball -=1
-	end
-end
-
-function update_levelover()
-	if btnp(5) then
-		nextlevel()
-	end
-end
-
-function update_gameover()
-	--blinking effects at gameover
-	if gameover_countdown < 0 then
-		if btnp(5) then
-			gameover_countdown = 80
-			blink_speed = 1
-			sfx(11)
-		end
-	else
-		gameover_countdown -= 1
-		fade_percentage = (80-gameover_countdown)/80
-		if gameover_countdown <= 0 then
-			gameover_countdown = -1
-			blink_speed = 9
-			pal()
-			startgame()
-		end
-	end
-end
-
-function update_gameoverwait()
-	gameover_countdown -= 1
-	if gameover_countdown <= 0 then
-		gameover_countdown = -1
-		manager.mode = "gameover"
+	if powerup.timer.megaball>0 then
+		powerup.timer.megaball-=1
 	end
 end
 
 function updateball(_i)
-	local _ballobj = ballobj[_i]
+	local _ballobj=ballobj[_i]
+	local _nextx,_nexty
+
 	--stick ball to paddle
 	if _ballobj.sticky then
-		_ballobj.x = paddle.x + stickyx
-		_ballobj.y = paddle.y - ball.radius - 1
+		_ballobj.x=paddle.x+stickyx
+		_ballobj.y=paddle.y-ball.radius-1
 	else
 		--regular ball physics/slowdown powerup
-		if powerup.timer.slowdown > 0 then
-			nextx = _ballobj.x + (_ballobj.dx / 2)
-			nexty = _ballobj.y + (_ballobj.dy / 2)
+		if powerup.timer.slowdown>0 then
+			_nextx=_ballobj.x+(_ballobj.dx/2)
+			_nexty=_ballobj.y+(_ballobj.dy/2)
 		else
-			nextx = _ballobj.x + _ballobj.dx
-			nexty = _ballobj.y + _ballobj.dy
+			_nextx=_ballobj.x+_ballobj.dx
+			_nexty=_ballobj.y+_ballobj.dy
 		end
 
 		--check walls
-		if nextx > playarea.right or nextx < playarea.left then
-			nextx = mid(playarea.left,nextx,playarea.right)
-			_ballobj.dx = -_ballobj.dx
+		if _nextx>playarea.right or _nextx<playarea.left then
+			_nextx=mid(playarea.left,_nextx,playarea.right)
+			_ballobj.dx=-_ballobj.dx
 		sfx(01)
 		end
 		--check ceiling
-		if nexty < playarea.ceiling then
-			nexty = mid(playarea.ceiling,nexty,playarea.floor)
-			_ballobj.dy = -_ballobj.dy
+		if _nexty<playarea.ceiling then
+			_nexty=mid(playarea.ceiling,_nexty,playarea.floor)
+			_ballobj.dy=-_ballobj.dy
 		sfx(01)
 		end
 
 		--checks for paddle collision
-		if hitbox(nextx,nexty,paddle.x,paddle.y,paddle.width,paddle.height) then
+		if hitbox(_nextx,_nexty,paddle.x,paddle.y,paddle.width,paddle.height) then
 			--find out which direction to deflect
 			if deflection(_ballobj.x,_ballobj.y,_ballobj.dx,_ballobj.dy,paddle.x,paddle.y,paddle.width,paddle.height) then	
 				--ball hits paddle on the side
-				_ballobj.dx = -_ballobj.dx
+				_ballobj.dx=-_ballobj.dx
 				--resets ball position to edge of paddle on collision to prevent strange behavior
-				if _ballobj.x < paddle.x+paddle.width/2 then
+				if _ballobj.x<paddle.x+paddle.width/2 then
 					--left
-					nextx = paddle.x - ball.radius
+					_nextx=paddle.x-ball.radius
 				else
 					--right
-					nextx = paddle.x + paddle.width + ball.radius
+					_nextx=paddle.x+paddle.width+ball.radius
 				end
 			else
 				--ball hits paddle on the top/bottom
-				_ballobj.dy = -_ballobj.dy
+				_ballobj.dy=-_ballobj.dy
 				--sets ball to top of paddle to prevent it getting stuck inside
-				if _ballobj.y > paddle.y then
+				if _ballobj.y>paddle.y then
 					--bottom
-					nexty = paddle.y + paddle.height + ball.radius
+					_nexty=paddle.y+paddle.height+ball.radius
 				else
 					--top
-					nexty = paddle.y - ball.radius
+					_nexty=paddle.y-ball.radius
 					--change angle
-					if abs(paddle.dx) > 2 then
-						if sign(paddle.dx) == sign(_ballobj.dx) then
+					if abs(paddle.dx)>2 then
+						if sign(paddle.dx)==sign(_ballobj.dx) then
 							--flatten angle
 							setangle(_ballobj,mid(0,_ballobj.angle-1,2))
 						else
-							if _ballobj.angle == 2 then
+							if _ballobj.angle==2 then
 								--reverse direction because angle is already increased
-								_ballobj.dx *= -1
+								_ballobj.dx*=-1
 							else
 								--increase angle
 								setangle(_ballobj,mid(0,_ballobj.angle+1,2))
@@ -397,59 +400,59 @@ function updateball(_i)
 					end
 				end
 			end
-			player.combo = 0 --resets combo when ball hits paddle
+			player.combo=0 --resets combo when ball hits paddle
 			sfx(01)
 
 			--catch powerup
-			if paddle.sticky and _ballobj.dy < 0 then
+			if paddle.sticky and _ballobj.dy<0 then
 				releasecurrentsticky()
-				paddle.sticky = false
-				_ballobj.sticky = true
-				stickyx = _ballobj.x - paddle.x
+				paddle.sticky=false
+				_ballobj.sticky=true
+				stickyx=_ballobj.x-paddle.x
 			end
 		end
 		
 		--checks for brick collision
-		local brickhit = false --ensures correct reflection when two bricks hit at same time
+		local brickhit=false --ensures correct reflection when two bricks hit at same time
 
 		for i=1,#brickobj do
-			if brickobj[i].visible and hitbox(nextx,nexty,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then
+			if brickobj[i].visible and hitbox(_nextx,_nexty,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then
 				--find out which direction to deflect
 				if not(brickhit) then
-					if powerup.type == 6 and brickobj[i].type == "i" or powerup.type != 6 then
+					if powerup.type==6 and brickobj[i].type=="i" or powerup.type~=6then
 						--find out which direction to deflect
 						if deflection(_ballobj.x,_ballobj.y,_ballobj.dx,_ballobj.dy,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then	
-							_ballobj.dx = -_ballobj.dx
+							_ballobj.dx=-_ballobj.dx
 						else
-							_ballobj.dy = -_ballobj.dy
+							_ballobj.dy=-_ballobj.dy
 						end
 					end
 				end
 				--brick is hit
-				brickhit = true
+				brickhit=true
 				hitbrick(i,true)
 			end
 		end	
 
 		--update coordinates to move ball
-		_ballobj.x = nextx
-		_ballobj.y = nexty
+		_ballobj.x=_nextx
+		_ballobj.y=_nexty
 
 		--update ball trail
-		spawn_trail(nextx,nexty)
+		spawn_trail(_nextx,_nexty)
 		
 		--check floor
-		if nexty > playarea.floor then
+		if _nexty>playarea.floor then
 			sfx(00)
 			--lose multiball
-			if #ballobj > 1 then
-				shake += 0.1
+			if #ballobj>1 then
+				shake+=0.1
 				del(ballobj,_ballobj)
 			else
 				--death
-				shake += 0.3
-				player.lives -= 1
-				if player.lives < 0 then
+				shake+=0.3
+				player.lives-=1
+				if player.lives<0 then
 					gameover()
 				else
 					serveball()
