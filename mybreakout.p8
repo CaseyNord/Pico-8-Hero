@@ -57,7 +57,7 @@ function _init()
 		base_width = 24,
 		height=3,
 		colour=7,
-		sticky --intialized in serveball()
+		sticky --intialized in serve_ball()
 	}
 
 	brick={
@@ -83,22 +83,22 @@ function _init()
 		multiplier=1,
 		type=0,
 		timer={
-			slowdown, --intialized in serveball()
-			expand, --intialized in serveball()
-			reduce, --intialized in serveball()
-			megaball --intialized in serveball()
+			slowdown, --intialized in serve_ball()
+			expand, --intialized in serve_ball()
+			reduce, --intialized in serve_ball()
+			megaball --intialized in serve_ball()
 		}
 	}
 
 	player={
-		points, --initialized in startgame()
-		combo, --initialized in startgame()
-		lives --initialized in startgame()
+		points, --initialized in start_game()
+		combo, --initialized in start_game()
+		lives --initialized in start_game()
 	}
 
 	manager={
 		mode="startmenu",
-		level_number, --initialized in startgame()
+		level_number, --initialized in start_game()
 		debug=false,
 		debug_value=0 --change value at --top screen banner
 	}
@@ -171,9 +171,9 @@ function _update60()
 	if manager.mode=="game" then
 		update_game()
 	elseif manager.mode=="startmenu" then
-		update_startmenu()
+		update_start_menu()
 	elseif manager.mode=="levelover" then
-		update_levelover()
+		update_level_over()
 	elseif manager.mode=="gameoverwait" then
 		update_gameoverwait()
 	elseif manager.mode=="gameover" then
@@ -183,7 +183,7 @@ end
 
 -- update functions --
 
-function update_startmenu()
+function update_start_menu()
 	--blinking effects at game start
 	if countdown<0 then
 		if btnp(5) then
@@ -198,14 +198,14 @@ function update_startmenu()
 			countdown=-1
 			blink_speed=9
 			pal()
-			startgame()
+			start_game()
 		end
 	end
 end
 
-function update_levelover()
+function update_level_over()
 	if btnp(5) then
-		nextlevel()
+		next_level()
 	end
 end
 
@@ -232,7 +232,7 @@ function update_gameover()
 			gameover_countdown=-1
 			blink_speed=9
 			pal()
-			startgame()
+			start_game()
 		end
 	end
 end
@@ -254,18 +254,18 @@ function update_game()
 	if btn(0) then
 		paddle.dx=paddle.speed*-1
 	 	_button_is_pressed=true
-		stickyaim(-1)
+		sticky_aim(-1)
 	end	
 	--right
 	if btn(1) then
 		paddle.dx=paddle.speed
 		_button_is_pressed=true
-		stickyaim(1)
+		sticky_aim(1)
 	end
 
 	--launch ball off paddle
 	if  btnp(5) then
-		releasecurrentsticky()
+		release_current_sticky()
 	end
 	
 	--paddle friction slowdown
@@ -301,16 +301,16 @@ function update_game()
 			del(pillobj,pillobj[i])
 		elseif boxcollide(pillobj[i].x,pillobj[i].y,pill.width,pill.height,paddle.x,paddle.y,paddle.width,paddle.height) then
 			sfx(10)
-			powerupget(pillobj[i].type)
+			get_powerup(pillobj[i].type)
 			del(pillobj,pillobj[i])
 		end
 	end
 
-	checkforexplosions()
+	check_for_explosions()
 
-	if levelfinished() then
+	if level_finished() then
 		_draw() --final draw to clear last brick
-		levelover()
+		level_over()
 	end
 
 	--powerup clock update
@@ -387,14 +387,14 @@ function updateball(_i)
 					if abs(paddle.dx)>2 then
 						if sign(paddle.dx)==sign(_ballobj.dx) then
 							--flatten angle
-							setangle(_ballobj,mid(0,_ballobj.angle-1,2))
+							set_angle(_ballobj,mid(0,_ballobj.angle-1,2))
 						else
 							if _ballobj.angle==2 then
 								--reverse direction because angle is already increased
 								_ballobj.dx*=-1
 							else
 								--increase angle
-								setangle(_ballobj,mid(0,_ballobj.angle+1,2))
+								set_angle(_ballobj,mid(0,_ballobj.angle+1,2))
 							end
 						end
 					end
@@ -405,7 +405,7 @@ function updateball(_i)
 
 			--catch powerup
 			if paddle.sticky and _ballobj.dy<0 then
-				releasecurrentsticky()
+				release_current_sticky()
 				paddle.sticky=false
 				_ballobj.sticky=true
 				stickyx=_ballobj.x-paddle.x
@@ -413,12 +413,12 @@ function updateball(_i)
 		end
 		
 		--checks for brick collision
-		local brickhit=false --ensures correct reflection when two bricks hit at same time
+		local _brick_hit=false --ensures correct reflection when two bricks hit at same time
 
 		for i=1,#brickobj do
 			if brickobj[i].visible and hitbox(_nextx,_nexty,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then
 				--find out which direction to deflect
-				if not(brickhit) then
+				if not(_brick_hit) then
 					if powerup.type==6 and brickobj[i].type=="i" or powerup.type~=6then
 						--find out which direction to deflect
 						if deflection(_ballobj.x,_ballobj.y,_ballobj.dx,_ballobj.dy,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then	
@@ -429,8 +429,8 @@ function updateball(_i)
 					end
 				end
 				--brick is hit
-				brickhit=true
-				hitbrick(i,true)
+				_brick_hit=true
+				hit_brick(i,true)
 			end
 		end	
 
@@ -455,7 +455,7 @@ function updateball(_i)
 				if player.lives<0 then
 					gameover()
 				else
-					serveball()
+					serve_ball()
 				end
 			end
 		end	
@@ -469,9 +469,9 @@ function _draw()
 	if manager.mode=="game" then
 		draw_game()
 	elseif manager.mode=="startmenu" then
-		draw_startmenu()
+		draw_start_menu()
 	elseif manager.mode=="levelover" then
-		draw_levelover()
+		draw_level_over()
 	elseif manager.mode=="gameoverwait" then
 		draw_game()
 	elseif manager.mode=="gameover" then
@@ -487,13 +487,13 @@ end
 
 -- draw functions --
 
-function draw_startmenu()
+function draw_start_menu()
 	rectfill(0,0,128,128,5)
 	print("breakout",48,50,7)
 	print("press ❎ to start",31,70,blink_color)
 end
 
-function draw_levelover()
+function draw_level_over()
 	rectfill(0,49,127,62,0)
 	print("stage clear!",40,50,7)
 	print("press ❎ to continue",24,57,6)
@@ -511,21 +511,21 @@ function draw_game()
 	--draw bricks
 	for i=1,#brickobj do
 		if brickobj[i].visible then
-			local brickcolour
+			local _brick_colour
 			if brickobj[i].type=="b" then
-				brickcolour = brick.colour.b
+				_brick_colour = brick.colour.b
 			elseif brickobj[i].type=="i" then
-				brickcolour = brick.colour.i
+				_brick_colour = brick.colour.i
 			elseif brickobj[i].type=="h" then
-				brickcolour = brick.colour.h
+				_brick_colour = brick.colour.h
 			elseif brickobj[i].type=="s" then
-				brickcolour = brick.colour.s
+				_brick_colour = brick.colour.s
 			elseif brickobj[i].type=="zz" or brickobj[i].type=="z" then
-				brickcolour = brick.colour.z
+				_brick_colour = brick.colour.z
 			elseif brickobj[i].type=="p" then
-				brickcolour = brick.colour.p
+				_brick_colour = brick.colour.p
 			end
-			rectfill(brickobj[i].x,brickobj[i].y,brickobj[i].x+brick.width,brickobj[i].y+brick.height,brickcolour)
+			rectfill(brickobj[i].x,brickobj[i].y,brickobj[i].x+brick.width,brickobj[i].y+brick.height,_brick_colour)
 		end
 	end
 
@@ -584,355 +584,362 @@ end
 -->8
 -- functions --
 
-function startmenu()
-	manager.mode = "startmenu"
+--game management
+
+function start_menu()
+	manager.mode="startmenu"
 end
 
-function startgame()
-	manager.mode = "game"
-	manager.level_number = 1
-	player.points = 0
-	player.combo = 0 --combo chain multiplier
-	player.lives = 3
-	buildbricks(level[manager.level_number])
-	serveball()
+function start_game()
+	manager.mode="game"
+	manager.level_number=1
+	player.points=0
+	player.combo=0 --combo chain multiplier
+	player.lives=3
+	build_bricks(level[manager.level_number])
+	serve_ball()
 end
 
-function levelover()
-	manager.mode = "levelover"
+function level_over()
+	manager.mode="levelover"
 end
 
-function nextlevel()
-	manager.level_number += 1
-	if manager.level_number > #level then
+function next_level()
+	manager.level_number+=1
+	if manager.level_number>#level then
 		--game has been completed
-		return startmenu()
+		return start_menu()
 	end
-	manager.mode = "game"
-	player.combo = 0 --combo chain multiplier
-	player.lives = 3
-	buildbricks(level[manager.level_number])
-	serveball()
+	manager.mode="game"
+	player.combo=0 --combo chain multiplier
+	player.lives=3
+	build_bricks(level[manager.level_number])
+	serve_ball()
 end
 
 function gameover()
-	manager.mode = "gameoverwait"
-	gameover_countdown = 60
-	blink_frame = 0 --resetting this prevents a green frame from appearing
-	blink_speed = 11
+	manager.mode="gameoverwait"
+	gameover_countdown=60
+	blink_frame=0 --resetting this prevents a green frame from appearing
+	blink_speed=11
 end
 
-function levelfinished()
-	if #brickobj == 0 then return false end --don't finish level if explicitly empty
+function level_finished()
+	if #brickobj==0 then return false end --don't finish level if explicitly empty
 	for i=1,#brickobj do
-		if brickobj[i].visible and brickobj[i].type != "i" then
+		if brickobj[i].visible and brickobj[i].type~="i" then
 			return false
 		end
 	end
 	return true
 end
 
-function releasecurrentsticky()
+--ball mechanics
+
+function serve_ball()
+	ballobj={}
+	ballobj[1]=new_ball()
+	ballobj[1].x=paddle.x+flr(paddle.width/2)
+	ballobj[1].y=paddle.y-ball.radius
+	ballobj[1].dx=1
+	ballobj[1].dy=-1
+	ballobj[1].angle=1 
+	ballobj[1].sticky=true
+
+	paddle.sticky=false
+	stickyx=flr(paddle.width/2) --necessary here for catch powerup
+
+	player.combo=0
+	powerup.type=0
+	powerup.timer.slowdown=0
+	powerup.timer.expand=0
+	powerup.timer.reduce=0
+	powerup.timer.megaball=0
+	reset_pills();
+end
+
+function sticky_aim(_sign)
 	for i=1,#ballobj do
 		if ballobj[i].sticky then
-			ballobj[i].x = mid(playarea.left,ballobj[i].x,playarea.right)
-			ballobj[i].sticky = false
+			ballobj[i].dx=abs(ballobj[i].dx)*_sign
 		end
 	end
 end
 
-function stickyaim(_sign)
+function release_current_sticky()
 	for i=1,#ballobj do
 		if ballobj[i].sticky then
-			ballobj[i].dx = abs(ballobj[i].dx)*_sign
+			ballobj[i].x=mid(playarea.left,ballobj[i].x,playarea.right)
+			ballobj[i].sticky=false
 		end
 	end
 end
 
-function powerupget(_powerup)
-	if _powerup == 1 then
-		--slowdown
-		powerup.type = 1
-		powerup.timer.slowdown = 600
-	elseif _powerup == 2 then
-		--lifeup
-		powerup.type = 0
-		player.lives += 1
-	elseif _powerup == 3 then
-		--catch
-		powerup.type = 3
-		paddle.sticky = true
-		--prevents 'handoff' if a ball is already stuck to paddle
-		for i=1,#ballobj do
-			if ballobj[i].sticky then
-				paddle.sticky = false
-			end
-		end
-	elseif _powerup == 4 then
-		--expand
-		powerup.type = 4
-		powerup.timer.reduce = 0
-		powerup.timer.expand = 600
-	elseif _powerup == 5 then
-		--reduce
-		powerup.type = 5
-		powerup.timer.expand = 0
-		powerup.timer.reduce = 600
-	elseif _powerup == 6 then
-		--megaball
-		powerup.type = 6
-		powerup.timer.megaball = 600
-	elseif _powerup == 7 then
-		--multiball
-		powerup.type = 7
-		multiball()
+function combo(_istrue)
+	if _istrue then
+		player.combo+=1
+		player.combo=mid(1,player.combo,6) --make sure combo doesn't exceed 7
 	end
 end
 
-function addbrick(_index,_type)
-	local _brickobj = {}
-	_brickobj.x = 4+((_index-1)%11)*(brick.width+2)
-	_brickobj.y = 20+flr((_index-1)/11)*(brick.height+2)
-	_brickobj.visible = true
-	_brickobj.type = _type
-	add(brickobj,_brickobj)
+function new_ball()
+	local _ball={}
+	_ball.x=0
+	_ball.y=0
+	_ball.dx=0
+	_ball.dy=0
+	_ball.angle=1
+	_ball.sticky=false
+	return _ball
 end
 
-function buildbricks(_lvl)
-	local _character, _last, _j, _k
-	brickobj = {} --change
-
-	_j = 0
-	for i=1,#_lvl do
-		_j += 1
-		_character = sub(_lvl,i,i)
-		if _character == "b"
-		or _character == "i"
-		or _character == "h"
-		or _character == "s"
-		or _character == "p" then
-			_last = _character
-			addbrick(_j,_character)
-		elseif _character == "x" then
-			_last = "x"
-		elseif _character == "/" then
-			_j = (flr((_j-1)/11)+1)*11
-		elseif _character >= "1" and _character <= "9" then
-			for _k=1,_character+0 do
-				if _last == "b"
-				or _last == "i"
-				or _last == "h"
-				or _last == "s"
-				or _last == "p" then
-					addbrick(_j,_last)
-				elseif _last == "x" then
-					--create empty space
-				end
-				_j += 1
-			end
-			_j -= 1 --prevents skipping a line
-		end
-	end
+function copy_ball(_ball)
+	local _new_ball={}
+	_new_ball.x=_ball.x
+	_new_ball.y=_ball.y
+	_new_ball.dx=_ball.dx
+	_new_ball.dy=_ball.dy
+	_new_ball.angle=_ball.angle
+	_new_ball.sticky=_ball.sticky
+	return _new_ball
 end
 
-function hitbrick(_i,_combo)
-	if brickobj[_i].type == "b" then
-		sfx(02+player.combo)
-		brickobj[_i].visible = false
-		player.points += 10*(player.combo+1)*powerup.multiplier
-		combo(_combo)
-	elseif brickobj[_i].type == "i" then
-		sfx(09)
-	elseif brickobj[_i].type == "h" then
-		if powerup.timer.megaball > 0 then
-			sfx(02+player.combo)
-			brickobj[_i].visible = false
-			player.points += 10*(player.combo+1)*powerup.multiplier
-			combo(_combo)
-		else
-			sfx(09)
-			brickobj[_i].type = "b"
-		end
-	elseif brickobj[_i].type == "s" then
-		sfx(02+player.combo)
-		brickobj[_i].type = "zz"				
-		player.points += 10*(player.combo+1)*powerup.multiplier
-		combo(_combo)
-	elseif brickobj[_i].type == "p" then
-		sfx(02+player.combo)
-		brickobj[_i].visible = false				
-		player.points += 10*(player.combo+1)*powerup.multiplier
-		combo(_combo)
-		spawnpill(brickobj[_i].x,brickobj[_i].y)
-	end
-end
-
-function resetpills()
-	--empty pill tables
-	pillobj = {}
-end
-
-function spawnpill(_brickx,_bricky)
-	local _pillobj = {}
-	_pillobj.x = _brickx
-	_pillobj.y = _bricky
-	--_pillobj.type = flr(rnd(7))+1
-	_pillobj.type = 3
-	--[[ test powerups
-	t = flr(rnd(2))
-	if t == 1 then
-		_pillobj.type = 3
+function multi_ball()
+	--todo: there is a bug here where the random function doesn't seem to always return
+	--a valid ball to split, meaning sometimes a multiball pickup won't do anything
+	local _ballobjindex=flr(rnd(#ballobj))+1
+	local _ogball=copy_ball(ballobj[_ballobjindex]) --index a random ball 
+	local _ball2=_ogball 
+	--local _ball3 = copy_ball(ballobj[1])
+	
+	if _ogball.angle==0 then
+		set_angle(_ball2,2)
+		--set_angle(_ball3,2)
+	elseif _ogball.angle==1 then
+		set_angle(_ogball,0)
+		set_angle(_ball2,2)
+		--set_angle(_ball3,0)
 	else
-		_pillobj.type = 7
+		set_angle(_ball2,0)
+		--set_angle(_ball3,1)
+	end
+
+	_ball2.stuck=false --prevents unwanted paddle sticking behavior
+	ballobj[#ballobj+1]=_ball2
+	--ballobj[#ballobj+1]=_ball3
+end
+
+--powerups
+
+function spawn_pill(_brickx,_bricky)
+	local _pillobj={}
+	_pillobj.x=_brickx
+	_pillobj.y=_bricky
+	--_pillobj.type=flr(rnd(7))+1
+	_pillobj.type=3
+	--[[ test powerups
+	t=flr(rnd(2))
+	if t==1 then
+		_pillobj.type=3
+	else
+		_pillobj.type=7
 	end
 	]]
 	
 	add(pillobj,_pillobj)
 end
 
-function combo(_istrue)
-	if _istrue then
-		player.combo += 1
-		player.combo = mid(1,player.combo,6) --make sure combo doesn't exceed 7
+function reset_pills()
+	--empty pill tables
+	pillobj={}
+end
+
+function get_powerup(_powerup)
+	if _powerup==1 then
+		--slowdown
+		powerup.type=1
+		powerup.timer.slowdown=600
+	elseif _powerup==2 then
+		--lifeup
+		powerup.type=0
+		player.lives+=1
+	elseif _powerup==3 then
+		--catch
+		powerup.type=3
+		paddle.sticky=true
+		--prevents 'handoff' if a ball is already stuck to paddle
+		for i=1,#ballobj do
+			if ballobj[i].sticky then
+				paddle.sticky=false
+			end
+		end
+	elseif _powerup==4 then
+		--expand
+		powerup.type=4
+		powerup.timer.reduce=0
+		powerup.timer.expand=600
+	elseif _powerup==5 then
+		--reduce
+		powerup.type=5
+		powerup.timer.expand=0
+		powerup.timer.reduce=600
+	elseif _powerup==6 then
+		--megaball
+		powerup.type=6
+		powerup.timer.megaball=600
+	elseif _powerup==7 then
+		--multiball
+		powerup.type=7
+		multi_ball()
 	end
 end
 
-function checkforexplosions()
+--not collision, rather managing what happens gamewise when bricks are hit
+function hit_brick(_i,_combo)
+	if brickobj[_i].type=="b" then
+		sfx(02+player.combo)
+		brickobj[_i].visible=false
+		player.points+=10*(player.combo+1)*powerup.multiplier
+		combo(_combo)
+	elseif brickobj[_i].type=="i" then
+		sfx(09)
+	elseif brickobj[_i].type=="h" then
+		if powerup.timer.megaball>0 then
+			sfx(02+player.combo)
+			brickobj[_i].visible=false
+			player.points+=10*(player.combo+1)*powerup.multiplier
+			combo(_combo)
+		else
+			sfx(09)
+			brickobj[_i].type="b"
+		end
+	elseif brickobj[_i].type=="s" then
+		sfx(02+player.combo)
+		brickobj[_i].type="zz"				
+		player.points+=10*(player.combo+1)*powerup.multiplier
+		combo(_combo)
+	elseif brickobj[_i].type=="p" then
+		sfx(02+player.combo)
+		brickobj[_i].visible=false				
+		player.points+=10*(player.combo+1)*powerup.multiplier
+		combo(_combo)
+		spawn_pill(brickobj[_i].x,brickobj[_i].y)
+	end
+end
+
+function check_for_explosions()
 	for i=1,#brickobj do
-		if brickobj[i].type == "z" and brickobj[i].visible then
-			brickexplode(i)
+		if brickobj[i].type=="z" and brickobj[i].visible then
+			brick_explode(i)
 			--brick explosion effect
-			shake += 0.2
-			if shake > 1 then
-				shake = 1
+			shake+=0.2
+			if shake>1 then
+				shake=1
 			end
 		end
 	end
 	for i=1,#brickobj do
-		if brickobj[i].type == "zz" then
-			brickobj[i].type = "z"
+		if brickobj[i].type=="zz" then
+			brickobj[i].type="z"
 		end
 	end
 end
 
-function brickexplode(_i)
+function brick_explode(_i)
 	brickobj[_i].visible=false
 	for j=1,#brickobj do
-		if j !=_i 
+		if j~=_i 
 		and brickobj[j].visible 
-		and abs(brickobj[j].x-brickobj[_i].x) <= (brick.width+2)
-		and abs(brickobj[j].y-brickobj[_i].y) <= (brick.height+2)
+		and abs(brickobj[j].x-brickobj[_i].x)<=(brick.width+2)
+		and abs(brickobj[j].y-brickobj[_i].y)<=(brick.height+2)
 		then
-			hitbrick(j,false)
+			hit_brick(j,false)
 		end
 	end
 end
 
-function newball()
-	local _ball = {}
-	_ball.x = 0
-	_ball.y = 0
-	_ball.dx = 0
-	_ball.dy = 0
-	_ball.angle = 1
-	_ball.sticky = false
-	return _ball
-end
-
-function copyball(_ball)
-	local newball = {}
-	newball.x = _ball.x
-	newball.y = _ball.y
-	newball.dx = _ball.dx
-	newball.dy = _ball.dy
-	newball.angle = _ball.angle
-	newball.sticky = _ball.sticky
-	return newball
-end
-
-function multiball()
-	--there is a bug here where the random function doesn't seem to always return
-	--a valid ball to split, meaning sometimes a multiball pickup won't do anything
-	local _ballobjindex = flr(rnd(#ballobj))+1
-	local _ogball = copyball(ballobj[_ballobjindex]) --index a random ball 
-	local _ball2 = _ogball 
-	--local _ball3 = copyball(ballobj[1])
-	
-	if _ogball.angle == 0 then
-		setangle(_ball2,2)
-		--setangle(_ball3,2)
-	elseif _ogball.angle == 1 then
-		setangle(_ogball,0)
-		setangle(_ball2,2)
-		--setangle(_ball3,0)
+function set_angle(_ball,_angle)
+	_ball.angle=_angle
+	if _angle==2 then
+		_ball.dx=0.60*sign(_ball.dx)
+		_ball.dy=1.40*sign(_ball.dy)
+	elseif angle==0 then
+		_ball.dx=1.40*sign(_ball.dx)
+		_ball.dy=0.60*sign(_ball.dy)
 	else
-		setangle(_ball2,0)
-		--setangle(_ball3,1)
-	end
-
-	_ball2.stuck = false --prevents unwanted paddle sticking behavior
-	ballobj[#ballobj+1] = _ball2
-	--ballobj[#ballobj+1] = _ball3
-end
-
-function serveball()
-	ballobj = {}
-	ballobj[1] = newball()
-	ballobj[1].x = paddle.x+flr(paddle.width/2)
-	ballobj[1].y = paddle.y-ball.radius
-	ballobj[1].dx = 1
-	ballobj[1].dy = -1
-	ballobj[1].angle = 1 
-	ballobj[1].sticky = true
-
-	paddle.sticky = false
-	stickyx = flr(paddle.width/2) --necessary here for catch powerup
-
-	player.combo = 0
-	powerup.type = 0
-	powerup.timer.slowdown = 0
-	powerup.timer.expand = 0
-	powerup.timer.reduce = 0
-	powerup.timer.megaball = 0
-	resetpills();
-end
-
-function setangle(_ball,_angle)
-	_ball.angle = _angle
-	if _angle == 2 then
-		_ball.dx = 0.60*sign(_ball.dx)
-		_ball.dy = 1.40*sign(_ball.dy)
-	elseif angle == 0 then
-		_ball.dx = 1.40*sign(_ball.dx)
-		_ball.dy = 0.60*sign(_ball.dy)
-	else
-		_ball.dx = 1*sign(_ball.dx)
-		_ball.dy = 1*sign(_ball.dy)
+		_ball.dx=1*sign(_ball.dx)
+		_ball.dy=1*sign(_ball.dy)
 	end
 end
 
 function sign(_number)
-	if _number < 0 then
+	if _number<0 then
 		return -1
-	elseif _number > 0 then
+	elseif _number>0 then
 		return 1
 	else
 		return 0
 	end
 end
 
+function add_brick(_index,_type)
+	local _brickobj={}
+	_brickobj.x=4+((_index-1)%11)*(brick.width+2)
+	_brickobj.y=20+flr((_index-1)/11)*(brick.height+2)
+	_brickobj.visible=true
+	_brickobj.type=_type
+	add(brickobj,_brickobj)
+end
+
+function build_bricks(_lvl)
+	local _character,_last,_j,_k
+	brickobj={} --change
+
+	_j=0
+	for i=1,#_lvl do
+		_j+=1
+		_character=sub(_lvl,i,i)
+		if _character=="b"
+		or _character=="i"
+		or _character=="h"
+		or _character=="s"
+		or _character=="p" then
+			_last=_character
+			add_brick(_j,_character)
+		elseif _character=="x" then
+			_last="x"
+		elseif _character=="/" then
+			_j=(flr((_j-1)/11)+1)*11
+		elseif _character>="1" and _character<="9" then
+			for _k=1,_character+0 do
+				if _last=="b"
+				or _last=="i"
+				or _last=="h"
+				or _last=="s"
+				or _last=="p" then
+					add_brick(_j,_last)
+				elseif _last=="x" then
+					--create empty space
+				end
+				_j+=1
+			end
+			_j-=1 --prevents skipping a line
+		end
+	end
+end
+
 --collosion detection
 function hitbox(_bx,_by,_x,_y,_width,_height)
-	if (_by-ball.radius > _y + _height) then
+	if (_by-ball.radius>_y+_height) then
 		return false
 	end
-	if (_by+ball.radius < _y) then
+	if (_by+ball.radius<_y) then
 		return false
 	end
-	if (_bx-ball.radius > _x + _width) then
+	if (_bx-ball.radius>_x+_width) then
 		return false
 	end
-	if (_bx+ball.radius < _x) then
+	if (_bx+ball.radius<_x) then
 		return false
 	end
 	return true
@@ -940,16 +947,16 @@ end
 
 --checks for collision between colliding boxes (pill/paddle)
 function boxcollide(_bx1,_by1,_width1,_height1,_bx2,_by2,_width2,_height2)
-	if (_by1 > _by2 + _height2) then
+	if (_by1>_by2+_height2) then
 		return false
 	end
-	if (_by1 + _height1 < _by2) then
+	if (_by1+_height1<_by2) then
 		return false
 	end
-	if (_bx1 > _bx2 + _width2) then
+	if (_bx1>_bx2+_width2) then
 		return false
 	end
-	if (_bx1 + _width1 < _bx2) then
+	if (_bx1+_width1<_bx2) then
 		return false
 	end
 	return true
@@ -957,31 +964,31 @@ end
 
 --checks for correct angle deflection
 function deflection(_bx,_by,_bdx,_bdy,_tx,_ty,_tw,_th)
-	local _slope = _bdy / _bdx
-	local _cx, _cy
+	local _slope=_bdy/_bdx
+	local _cx,_cy
 
-	if _bdx == 0 then
+	if _bdx==0 then
 		--moving vertically
 		return false
-	elseif _bdy == 0 then
+	elseif _bdy==0 then
 		--moving horizontally
 		return true
-	elseif _slope > 0 and _bdx > 0 then
-		_cx = _tx - _bx
-		_cy = _ty - _by
-		return _cx > 0 and _cy/_cx < _slope
-	elseif _slope < 0 and _bdx > 0 then
-		_cx = _tx - _bx
-		_cy = _ty + _th - _by
-		return _cx > 0 and _cy/_cx >= _slope
-	elseif _slope > 0 and _bdx < 0 then
-		_cx = _tx + _tw - _bx
-		_cy = _ty + _th - _by
-		return _cx < 0 and _cy/_cx <= _slope
+	elseif _slope>0 and _bdx>0 then
+		_cx=_tx-_bx
+		_cy=_ty-_by
+		return _cx>0 and _cy/_cx<_slope
+	elseif _slope<0 and _bdx>0 then
+		_cx=_tx-_bx
+		_cy=_ty+_th-_by
+		return _cx>0 and _cy/_cx>=_slope
+	elseif _slope>0 and _bdx<0 then
+		_cx=_tx+_tw-_bx
+		_cy=_ty+_th-_by
+		return _cx<0 and _cy/_cx<=_slope
 	else
-		_cx = _tx + _tw - _bx
-		_cy = _ty - _by
-		return _cx < 0 and _cy/_cx >= _slope
+		_cx=_tx+_tw-_bx
+		_cy=_ty-_by
+		return _cx<0 and _cy/_cx>=_slope
 	end
 end
 
