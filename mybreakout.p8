@@ -523,6 +523,9 @@ function draw_game()
 		end
 	end
 
+	--draw particles
+	draw_particles()
+
 	--draw pills
 	for i=1,#pillobj do
 		if pillobj[i].type==5 then
@@ -532,9 +535,6 @@ function draw_game()
 		spr(pillobj[i].type,pillobj[i].x,pillobj[i].y)
 		palt() --reset palette
 	end
-
-	--draw particles
-	draw_particles()
 
 	--draw balls
 	for i=1,#ballobj do
@@ -1130,10 +1130,12 @@ end
 function spawn_trail(_x,_y)
 	--use trig to make sure particles spawn *around* ball
 	--(not in a square around the ball)
-	local _angle=rnd()
-	local _offset_x=sin(_angle)*ball.radius*0.5
-	local _offset_y=cos(_angle)*ball.radius*0.5
+	if rnd()<0.5 then
+		local _angle=rnd()
+		local _offset_x=sin(_angle)*ball.radius*0.5
+		local _offset_y=cos(_angle)*ball.radius*0.5
 	add_particle(_x+_offset_x,_y+_offset_y,0,15+rnd(15),10,9)
+	end
 end
 
 __gfx__
