@@ -166,7 +166,7 @@ function _update60()
 
 	--always update particles so they can always be used!
 	update_particles()
-	screenshake()
+	screen_shake()
 
 	if manager.mode=="game" then
 		update_game()
@@ -995,30 +995,30 @@ end
 -->8
 -- juicyness --
 
-function screenshake()
-	local _x = 16-rnd(32)
-	local _y = 16-rnd(32)
+function screen_shake()
+	local _x=16-rnd(32)
+	local _y=16-rnd(32)
 
-	_x *= shake
-	_y *= shake
+	_x*=shake
+	_y*=shake
 
 	camera(_x,_y)
 
-	shake *= 0.95
-	if shake < 0.05 then
-		shake = 0
+	shake*=0.95
+	if shake<0.05 then
+		shake=0
 	end
 end
 
 function blink(_blinksequence)
-	blink_frame += 1
-	if blink_frame > blink_speed then
-		blink_frame = 0
-		blink_seq_index += 1
-		if blink_seq_index > #_blinksequence then
-			blink_seq_index = 1
+	blink_frame+=1
+	if blink_frame>blink_speed then
+		blink_frame=0
+		blink_seq_index+=1
+		if blink_seq_index>#_blinksequence then
+			blink_seq_index=1
 		end
-		blink_color = _blinksequence[blink_seq_index]
+		blink_color=_blinksequence[blink_seq_index]
 	end
 end
 
@@ -1029,69 +1029,69 @@ function animate_arrow()
 	end
 	arrow_mult_01=1+(2*(arrow_frame/arrow_anim_spd))
 
-	local arrow_frame_2=arrow_frame+(arrow_anim_spd/2)
-	if arrow_frame_2>arrow_anim_spd then
-		arrow_frame_2=arrow_frame_2-arrow_anim_spd
+	local _arrow_frame_2=arrow_frame+(arrow_anim_spd/2)
+	if _arrow_frame_2>arrow_anim_spd then
+		_arrow_frame_2=_arrow_frame_2-arrow_anim_spd
 	end
-	arrow_mult_02=1+(2*(arrow_frame_2/arrow_anim_spd))
+	arrow_mult_02=1+(2*(_arrow_frame_2/arrow_anim_spd))
 end
 
 function fadepal(_perc)
- -- by krystman [#34135#]
- -- create fade by altering
- -- color palette
- -- 0 means normal
- -- 1 is completely black
- 
- -- first we take our argument
- -- and turn it into a 
- -- percentage number (0-100)
- -- also making sure its not
- -- out of bounds  
- local p=flr(mid(0,_perc,1)*100)
- 
- -- these are helper variables
- local kmax,col,dpal,j,k
- 
- -- this is a table to do the
- -- palette shifiting. it tells
- -- what number changes into
- -- what when it gets darker
- -- so number 
- -- 15 becomes 14
- -- 14 becomes 13
- -- 13 becomes 1
- -- 12 becomes 3
- -- etc...
- dpal={0,1,1,2,1,13,6,4,4,9,3,13,1,13,14}
- 
- -- now we go trough all colors
- for j=1,15 do
-  --grab the current color
-  col = j
-  
-  --now calculate how many
-  --times we want to fade the
-  --color.
-  --this is a messy formula
-  --and not exact science.
-  --but basically when kmax
-  --reaches 5 every color gets 
-  --turns black.
-  kmax=(p+(j*1.46))/22
-  
-  --now we send the color 
-  --through our table kmax
-  --times to derive the final
-  --color
-  for k=1,kmax do
-   col=dpal[col]
-  end
-  
-  --finally, we change the
-  --palette
-  pal(j,col,1)
- end
+	-- by krystman [#34135#]
+	-- create fade by altering
+	-- color palette
+	-- 0 means normal
+	-- 1 is completely black
+
+	-- first we take our argument
+	-- and turn it into a 
+	-- percentage number (0-100)
+	-- also making sure its not
+	-- out of bounds  
+	local _p=flr(mid(0,_perc,1)*100)
+
+	-- these are helper variables
+	local _kmax,_col,_dpal,_j,_k
+
+	-- this is a table to do the
+	-- palette shifiting. it tells
+	-- what number changes into
+	-- what when it gets darker
+	-- so number 
+	-- 15 becomes 14
+	-- 14 becomes 13
+	-- 13 becomes 1
+	-- 12 becomes 3
+	-- etc...
+	_dpal={0,1,1,2,1,13,6,4,4,9,3,13,1,13,14}
+
+	-- now we go trough all colors
+	for _j=1,15 do
+		--grab the current color
+		_col=_j
+
+		--now calculate how many
+		--times we want to fade the
+		--color.
+		--this is a messy formula
+		--and not exact science.
+		--but basically when kmax
+		--reaches 5 every color gets 
+		--turns black.
+		_kmax=(_p+(_j*1.46))/22
+
+		--now we send the color 
+		--through our table kmax
+		--times to derive the final
+		--color
+		for _k=1,_kmax do
+			_col=_dpal[_col]
+		end
+
+		--finally, we change the
+		--palette
+		pal(j,col,1)
+	end
 end
 
 -->8
