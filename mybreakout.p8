@@ -466,21 +466,21 @@ end
 -- draw --
 
 function _draw()
-	if manager.mode ==  "game" then
+	if manager.mode=="game" then
 		draw_game()
-	elseif manager.mode == "startmenu" then
+	elseif manager.mode=="startmenu" then
 		draw_startmenu()
-	elseif manager.mode == "levelover" then
+	elseif manager.mode=="levelover" then
 		draw_levelover()
-	elseif manager.mode == "gameoverwait" then
+	elseif manager.mode=="gameoverwait" then
 		draw_game()
-	elseif manager.mode == "gameover" then
+	elseif manager.mode=="gameover" then
 		draw_gameover()
 	end
 
 	--screenfade
 	pal()
-	if fade_percentage ~= 0 then	
+	if fade_percentage~=0 then	
 		fadepal(fade_percentage)
 	end
 end
@@ -493,6 +493,18 @@ function draw_startmenu()
 	print("press ❎ to start",31,70,blink_color)
 end
 
+function draw_levelover()
+	rectfill(0,49,127,62,0)
+	print("stage clear!",40,50,7)
+	print("press ❎ to continue",24,57,6)
+end
+
+function draw_gameover()
+	rectfill(0,49,127,62,0)
+	print("gameover!",48,50,7)
+	print("press ❎ to restart",28,57,blink_color)
+end
+
 function draw_game()
 	rectfill(0,0,127,127,1)
 
@@ -500,17 +512,17 @@ function draw_game()
 	for i=1,#brickobj do
 		if brickobj[i].visible then
 			local brickcolour
-			if brickobj[i].type == "b" then
+			if brickobj[i].type=="b" then
 				brickcolour = brick.colour.b
-			elseif brickobj[i].type == "i" then
+			elseif brickobj[i].type=="i" then
 				brickcolour = brick.colour.i
-			elseif brickobj[i].type == "h" then
+			elseif brickobj[i].type=="h" then
 				brickcolour = brick.colour.h
-			elseif brickobj[i].type == "s" then
+			elseif brickobj[i].type=="s" then
 				brickcolour = brick.colour.s
-			elseif brickobj[i].type == "zz" or brickobj[i].type == "z" then
+			elseif brickobj[i].type=="zz" or brickobj[i].type=="z" then
 				brickcolour = brick.colour.z
-			elseif brickobj[i].type == "p" then
+			elseif brickobj[i].type=="p" then
 				brickcolour = brick.colour.p
 			end
 			rectfill(brickobj[i].x,brickobj[i].y,brickobj[i].x+brick.width,brickobj[i].y+brick.height,brickcolour)
@@ -519,7 +531,7 @@ function draw_game()
 
 	--draw pills
 	for i=1,#pillobj do
-		if pillobj[i].type == 5 then
+		if pillobj[i].type==5 then
 			palt(0,false) --display black (0)
 			palt(15,true) --don't display creme (15)
 		end
@@ -545,7 +557,7 @@ function draw_game()
 			pset(ballobj[i].x+ballobj[i].dx*4*arrow_mult_02,
 			     ballobj[i].y+ballobj[i].dy*4*arrow_mult_02,
 				 ball.colour)
-			--serve preview line
+			--serve preview line (not getting used)
 			-- line(ballobj[i].x+ballobj[i].dx*4*arrow_mult,
 			--      ballobj[i].y+ballobj[i].dy*4*arrow_mult,
 			-- 	 ballobj[i].x+ballobj[i].dx*6*arrow_mult,
@@ -560,25 +572,13 @@ function draw_game()
 	--top screen banner (ui)
 	rectfill(0,0,128,6,0)
 	if manager.debug then
-		manager.debug_value = powerup.timer
+		manager.debug_value=powerup.timer
 		print("debug:"..manager.debug_value,0,0,7)
 	else
 		print("lives:"..player.lives,0,0,7)
 		print("points:"..player.points,68,0,7)
 		print("combo:"..player.combo,34,0,7)
 	end
-end
-
-function draw_levelover()
-	rectfill(0,49,127,62,0)
-	print("stage clear!",40,50,7)
-	print("press ❎ to continue",24,57,6)
-end
-
-function draw_gameover()
-	rectfill(0,49,127,62,0)
-	print("gameover!",48,50,7)
-	print("press ❎ to restart",28,57,blink_color)
 end
 
 -->8
