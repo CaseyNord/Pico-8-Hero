@@ -931,16 +931,16 @@ end
 
 --collosion detection
 function hitbox(_bx,_by,_x,_y,_width,_height)
-	if (_by-ball.radius>_y+_height) then
+	if _by-ball.radius>_y+_height then
 		return false
 	end
-	if (_by+ball.radius<_y) then
+	if _by+ball.radius<_y then
 		return false
 	end
-	if (_bx-ball.radius>_x+_width) then
+	if _bx-ball.radius>_x+_width then
 		return false
 	end
-	if (_bx+ball.radius<_x) then
+	if _bx+ball.radius<_x then
 		return false
 	end
 	return true
@@ -948,16 +948,16 @@ end
 
 --checks for collision between colliding boxes (pill/paddle)
 function boxcollide(_bx1,_by1,_width1,_height1,_bx2,_by2,_width2,_height2)
-	if (_by1>_by2+_height2) then
+	if _by1>_by2+_height2 then
 		return false
 	end
-	if (_by1+_height1<_by2) then
+	if _by1+_height1<_by2 then
 		return false
 	end
-	if (_bx1>_bx2+_width2) then
+	if _bx1>_bx2+_width2 then
 		return false
 	end
-	if (_bx1+_width1<_bx2) then
+	if _bx1+_width1<_bx2 then
 		return false
 	end
 	return true
