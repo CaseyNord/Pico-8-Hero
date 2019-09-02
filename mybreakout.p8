@@ -146,6 +146,8 @@ function _init()
 	--(particles are handled by functions)
 	ptcl={}
 
+	last_hit_x=0
+	last_hit_y=0
 end
 
 -->8
@@ -414,6 +416,11 @@ function updateball(_i)
 				--find out which direction to deflect
 				if not(_brick_hit) then
 					if powerup.type==6 and brickobj[i].type=="i" or powerup.type~=6then
+						--save velocity of ball to apply to particles to launch
+						--them in the same direction
+						last_hit_x=_ballobj.dx
+						last_hit_y=_ballobj.dy
+						
 						--find out which direction to deflect
 						if deflection(_ballobj.x,_ballobj.y,_ballobj.dx,_ballobj.dy,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then	
 							_ballobj.dx=-_ballobj.dx
@@ -793,7 +800,7 @@ function hit_brick(_i,_combo)
 	--regular brick
 	if brickobj[_i].type=="b" then
 		sfx(02+player.combo)
-		shatter_brick(brickobj[_i])
+		shatter_brick(brickobj[_i],last_hit_x,last_hit_y)
 		brickobj[_i].visible=false
 		player.points+=10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
@@ -820,7 +827,7 @@ function hit_brick(_i,_combo)
 	--powerup brick
 	elseif brickobj[_i].type=="p" then
 		sfx(02+player.combo)
-		shatter_brick(brickobj[_i])
+		shatter_brick(brickobj[_i],last_hit_x,last_hit_y)
 		brickobj[_i].visible=false				
 		player.points+=10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
@@ -1132,7 +1139,7 @@ function update_particles()
 
 			--apply gravity
 			if _p.type==1 then
-				_p.dy+=0.1
+				_p.dy+=0.05
 			end
 
 			--move particle
@@ -1152,12 +1159,15 @@ function draw_particles()
 	end
 end
 
-function shatter_brick(_brick)
-	for i=0,10 do
-		local _angle=rnd()
-		local _dx=sin(_angle)*1
-		local _dy=cos(_angle)*1
-		add_particle(_brick.x,_brick.y,_dx,_dy,1,60,{7})
+function shatter_brick(_brick,_vx,_vy)
+	for _x=0,brick.width do
+		for _y=0,brick.height do
+
+			local _angle=rnd()
+			local _dx=sin(_angle)*rnd(2)+_vx
+			local _dy=cos(_angle)*rnd(2)+_vy
+			add_particle(_brick.x+_x,_brick.y+_y,_dx,_dy,1,60,{7})
+		end
 	end
 end
 
