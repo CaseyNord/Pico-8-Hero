@@ -113,6 +113,7 @@ function _init()
 		--s = exploding brick
 		--p = powerup brick
 		
+		"b9bx9xb9bx9xb9b",
 		"s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
 		"b9b/xixbbpbbxix/hphphphphph",
 		"i9i//h9h//b9b//p9p", --test level one
@@ -146,6 +147,8 @@ function _init()
 	--(particles are handled by functions)
 	ptcl={}
 
+	last_hit_x=0
+	last_hit_y=0
 end
 
 -->8
@@ -320,6 +323,10 @@ function update_game()
 	if powerup.timer.megaball>0 then
 		powerup.timer.megaball-=1
 	end
+
+	--animate brick rebound
+	rebound_bricks()
+
 end
 
 function updateball(_i)
@@ -414,6 +421,11 @@ function updateball(_i)
 				--find out which direction to deflect
 				if not(_brick_hit) then
 					if powerup.type==6 and brickobj[i].type=="i" or powerup.type~=6then
+						--save velocity of ball to apply to particles to launch
+						--them in the same direction
+						last_hit_x=_ballobj.dx
+						last_hit_y=_ballobj.dy
+						
 						--find out which direction to deflect
 						if deflection(_ballobj.x,_ballobj.y,_ballobj.dx,_ballobj.dy,brickobj[i].x,brickobj[i].y,brick.width,brick.height) then	
 							_ballobj.dx=-_ballobj.dx
@@ -504,22 +516,28 @@ function draw_game()
 
 	--draw bricks
 	for i=1,#brickobj do
-		if brickobj[i].visible then
+		local _b=brickobj[i]
+		if _b.visible or _b.flash>0 then
 			local _brick_colour
-			if brickobj[i].type=="b" then
+			if _b.flash>0 then
+				_brick_colour=7
+				_b.flash-=1
+			elseif _b.type=="b" then
 				_brick_colour = brick.colour.b
-			elseif brickobj[i].type=="i" then
+			elseif _b.type=="i" then
 				_brick_colour = brick.colour.i
-			elseif brickobj[i].type=="h" then
+			elseif _b.type=="h" then
 				_brick_colour = brick.colour.h
-			elseif brickobj[i].type=="s" then
+			elseif _b.type=="s" then
 				_brick_colour = brick.colour.s
-			elseif brickobj[i].type=="zz" or brickobj[i].type=="z" then
+			elseif _b.type=="zz" or _b.type=="z" then
 				_brick_colour = brick.colour.z
-			elseif brickobj[i].type=="p" then
+			elseif _b.type=="p" then
 				_brick_colour = brick.colour.p
 			end
-			rectfill(brickobj[i].x,brickobj[i].y,brickobj[i].x+brick.width,brickobj[i].y+brick.height,_brick_colour)
+			local _bx=_b.x+_b.offset_x
+			local _by=_b.y+_b.offset_y
+			rectfill(_bx,_by,_bx+brick.width,_by+brick.height,_brick_colour)
 		end
 	end
 
@@ -790,10 +808,13 @@ end
 
 --not collision, rather managing what happens gamewise when bricks are hit
 function hit_brick(_i,_combo)
+	local flash_timer=8
+
 	--regular brick
 	if brickobj[_i].type=="b" then
 		sfx(02+player.combo)
-		shatter_brick(brickobj[_i])
+		shatter_brick(brickobj[_i],last_hit_x,last_hit_y)
+		brickobj[_i].flash=flash_timer
 		brickobj[_i].visible=false
 		player.points+=10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
@@ -820,7 +841,8 @@ function hit_brick(_i,_combo)
 	--powerup brick
 	elseif brickobj[_i].type=="p" then
 		sfx(02+player.combo)
-		shatter_brick(brickobj[_i])
+		shatter_brick(brickobj[_i],last_hit_x,last_hit_y)
+		brickobj[_i].flash=flash_timer
 		brickobj[_i].visible=false				
 		player.points+=10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
@@ -887,7 +909,10 @@ function add_brick(_index,_type)
 	local _brickobj={}
 	_brickobj.x=4+((_index-1)%11)*(brick.width+2)
 	_brickobj.y=20+flr((_index-1)/11)*(brick.height+2)
+	_brickobj.offset_x=0
+	_brickobj.offset_y=0
 	_brickobj.visible=true
+	_brickobj.flash=0
 	_brickobj.type=_type
 	add(brickobj,_brickobj)
 end
@@ -931,16 +956,16 @@ end
 
 --collosion detection
 function hitbox(_bx,_by,_x,_y,_width,_height)
-	if (_by-ball.radius>_y+_height) then
+	if _by-ball.radius>_y+_height then
 		return false
 	end
-	if (_by+ball.radius<_y) then
+	if _by+ball.radius<_y then
 		return false
 	end
-	if (_bx-ball.radius>_x+_width) then
+	if _bx-ball.radius>_x+_width then
 		return false
 	end
-	if (_bx+ball.radius<_x) then
+	if _bx+ball.radius<_x then
 		return false
 	end
 	return true
@@ -948,16 +973,16 @@ end
 
 --checks for collision between colliding boxes (pill/paddle)
 function boxcollide(_bx1,_by1,_width1,_height1,_bx2,_by2,_width2,_height2)
-	if (_by1>_by2+_height2) then
+	if _by1>_by2+_height2 then
 		return false
 	end
-	if (_by1+_height1<_by2) then
+	if _by1+_height1<_by2 then
 		return false
 	end
-	if (_bx1>_bx2+_width2) then
+	if _bx1>_bx2+_width2 then
 		return false
 	end
-	if (_bx1+_width1<_bx2) then
+	if _bx1+_width1<_bx2 then
 		return false
 	end
 	return true
@@ -1118,6 +1143,11 @@ function update_particles()
 		_p.age+=1
 		if _p.age>_p.lifespan then
 			del(ptcl,ptcl[i])
+		--also destroy offscreen particles	
+		elseif _p.x<-20 or _p.x>148 then
+			del(ptcl,ptcl[i])
+		elseif _p.y<-20 or _p.y>148 then
+			del(ptcl,ptcl[i])
 		else
 			--change colors
 			if #_p.color_array==1 then
@@ -1132,7 +1162,7 @@ function update_particles()
 
 			--apply gravity
 			if _p.type==1 then
-				_p.dy+=0.1
+				_p.dy+=0.05
 			end
 
 			--move particle
@@ -1152,12 +1182,31 @@ function draw_particles()
 	end
 end
 
-function shatter_brick(_brick)
-	for i=0,10 do
-		local _angle=rnd()
-		local _dx=sin(_angle)*1
-		local _dy=cos(_angle)*1
-		add_particle(_brick.x,_brick.y,_dx,_dy,1,60,{7})
+--rebound bricks to original position after being offset by shatter_brick()
+function rebound_bricks()
+	for i=1,#brickobj do
+		local _b=brickobj[i]
+		if _b.visible or _b.flash>0 then
+			if _b.offset_x~=0 or _b.offset_y~=0 then
+				_b.offset_x-=sgn(_b.offset_x)
+				_b.offset_y-=sgn(_b.offset_y)
+			end
+		end
+	end
+end
+
+function shatter_brick(_brick,_vx,_vy)
+	_brick.offset_x=_vx*4
+	_brick.offset_y=_vy*4
+	for _x=0,brick.width do
+		for _y=0,brick.height do
+			if rnd()<0.5 then
+				local _angle=rnd()
+				local _dx=sin(_angle)*rnd(2)+(_vx*0.5)
+				local _dy=cos(_angle)*rnd(2)+(_vy*0.5)
+				add_particle(_brick.x+_x,_brick.y+_y,_dx,_dy,1,120,{7,6,5})
+			end
+		end
 	end
 end
 
