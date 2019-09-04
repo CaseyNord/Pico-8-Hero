@@ -7,7 +7,6 @@ __lua__
 --juicyness
 --	particles
 --	- death particles
---	- brick particles
 --	- collision particles
 -- 	- pickup particles
 --	- explosions
@@ -1133,8 +1132,10 @@ function add_particle(_x,_y,_dx,_dy,_type,_lifespan,_color)
 	_p.type=_type
 	_p.lifespan=_lifespan
 	_p.age=0	
-	_p.color=0
+	_p.color=0 --this is also used to index chunks for type 3
 	_p.color_array=_color
+	_p.rotate_tmr=0
+	_p.rotate=0
 	add(ptcl,_p)
 end
 
@@ -1162,9 +1163,21 @@ function update_particles()
 			end
 
 			--apply gravity
-			if _p.type==1 then
+			if _p.type==1 or _p.type==3 then
 				_p.dy+=0.05
 			end
+
+			--rotate
+			if _p.type==3 then
+				_p.rotate_tmr+=1
+				if _p.rotate_tmr>3 then
+					_p.rotate_tmr=0
+					_p.rotate+=1
+					if _p.rotate>=4 then
+						_p.rotate=0
+					end
+				end
+			end	
 
 			--move particle
 			_p.x+=_p.dx
@@ -1179,6 +1192,22 @@ function draw_particles()
 		--pixel particles
 		if _p.type==0 or _p.type==1 then
 			pset(_p.x,_p.y,_p.color)
+		elseif _p.type==3 then
+			local _fx,_fy
+			if _p.rotate==2 then
+				_fx=false
+				_fy=true
+			elseif _p.rotate==3 then
+				_fx=true
+				_fy=true
+			elseif _p.rotate==4 then
+				_fx=true
+				_fy=false
+			else
+				_fx=false
+				_fy=false
+			end
+			spr(_p.color,_p.x,_p.y,1,1,_fx,_fy)
 		end
 	end
 end
@@ -1222,6 +1251,7 @@ function animate_bricks()
 end
 
 function shatter_brick(_brick,_vx,_vy)
+	shake=0.06
 	_brick.dx=_vx*1 --multiplier can be increased to make brick hits fly further
 	_brick.dy=_vy*1
 	for _x=0,brick.width do
@@ -1232,6 +1262,17 @@ function shatter_brick(_brick,_vx,_vy)
 				local _dy=cos(_angle)*rnd(2)+(_vy*0.5)
 				add_particle(_brick.x+_x,_brick.y+_y,_dx,_dy,1,120,{7,6,5})
 			end
+		end
+	end
+
+	local _chunks=1+flr(rnd(10))
+	if _chunks>0 then
+		for i=1,_chunks do
+			local _angle=rnd()
+			local _dx=sin(_angle)*rnd(2)+(_vx*0.5)
+			local _dy=cos(_angle)*rnd(2)+(_vy*0.5)
+			local _spr=16+flr(rnd(15))
+			add_particle(_brick.x,_brick.y,_dx,_dy,3,80,{_spr})
 		end
 	end
 end
@@ -1256,6 +1297,12 @@ __gfx__
 00700700059999500577775005bbbb5005cccc50f500005f05eeee50058888500000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000ffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000ffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00007000000000000070700000777000000070000000000000000000000070000000000000000000000000000007000000000000000070000000700000000000
+00007700007700000077770000077700000777000077000000077700000777000007700000077000000070000007700000077700000770000007777000000000
+00077700000770000007700000007000007770000070000000000700000000000007700000070000000770000007700000077000000777000007777000000000
+00007000000000000007000000000000000000000000000000000000000000000000000000070000007700000000000000000000000707000077770000000000
 __sfx__
 00050000184501644014440114300f4300d4300c4300a430094300843006430054300343003430014000140000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00010000183601836018350183301832018310210001e0001a0001600001000010000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
