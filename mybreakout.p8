@@ -11,7 +11,6 @@ __lua__
 --	- collision particles
 -- 	- pickup particles
 --	- explosions
---level setup
 --high score 
 --ui
 --	powerup messages
@@ -325,7 +324,7 @@ function update_game()
 	end
 
 	--animate brick rebound
-	rebound_bricks()
+	animate_bricks()
 
 end
 
@@ -808,7 +807,7 @@ end
 
 --not collision, rather managing what happens gamewise when bricks are hit
 function hit_brick(_i,_combo)
-	local flash_timer=8
+	local flash_timer=10
 
 	--regular brick
 	if brickobj[_i].type=="b" then
@@ -910,7 +909,9 @@ function add_brick(_index,_type)
 	_brickobj.x=4+((_index-1)%11)*(brick.width+2)
 	_brickobj.y=20+flr((_index-1)/11)*(brick.height+2)
 	_brickobj.offset_x=0
-	_brickobj.offset_y=0
+	_brickobj.offset_y=-(128+rnd(128))
+	_brickobj.dx=0
+	_brickobj.dy=rnd(64)
 	_brickobj.visible=true
 	_brickobj.flash=0
 	_brickobj.type=_type
@@ -1182,22 +1183,47 @@ function draw_particles()
 	end
 end
 
---rebound bricks to original position after being offset by shatter_brick()
-function rebound_bricks()
+function animate_bricks()
 	for i=1,#brickobj do
 		local _b=brickobj[i]
 		if _b.visible or _b.flash>0 then
-			if _b.offset_x~=0 or _b.offset_y~=0 then
-				_b.offset_x-=sgn(_b.offset_x)
-				_b.offset_y-=sgn(_b.offset_y)
+			--see if brick is moving
+			if _b.dx~=0 or _b.dy~=0 or _b.offset_y~=0 or _b.offset_x~=0 then
+				--apply velocity
+				_b.offset_x+=_b.dx
+				_b.offset_y+=_b.dy
+
+				--pull speed back so brick wants to return to zero
+				_b.dx-=_b.offset_x/10
+				_b.dy-=_b.offset_y/10
+
+				--dampening
+				if abs(_b.dx)>_b.offset_x then
+					_b.dx=_b.dx/1.3
+				end
+
+				--snap to original position if close
+				if abs(_b.dy)>_b.offset_y then
+					_b.dy=_b.dy/1.3
+				end
+				
+				if abs(_b.offset_x)<0.2 and abs(_b.dx)<0.2 then
+					_b.offset_x=0
+					_b.dx=0
+				end
+
+				if abs(_b.offset_y)<0.2 and abs(_b.dy)<0.2 then
+					_b.offset_y=0
+					_b.dy=0
+				end
 			end
 		end
 	end
 end
 
 function shatter_brick(_brick,_vx,_vy)
-	_brick.offset_x=_vx*4
-	_brick.offset_y=_vy*4
+	_brick.dx=_vx*1 --multiplier can be increased to make brick hits fly further
+	_brick.dy=_vy*1
 	for _x=0,brick.width do
 		for _y=0,brick.height do
 			if rnd()<0.5 then
