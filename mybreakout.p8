@@ -450,7 +450,11 @@ function updateball(_i)
 		_ballobj.y=_nexty
 
 		--update ball trail
-		spawn_trail(_nextx,_nexty)
+		if powerup.timer.megaball>0 then
+			spawn_mega_trail(_nextx,_nexty)
+		else
+			spawn_trail(_nextx,_nexty)
+		end
 		
 		--check floor
 		if _nexty>playarea.floor then
@@ -561,7 +565,12 @@ function draw_game()
 
 	--draw balls
 	for i=1,#ballobj do
-		circfill(ballobj[i].x,ballobj[i].y,ball.radius,ball.colour)
+		local _ball_color=10
+		if powerup.timer.megaball>0 then
+			_ball_color=14
+		end
+		circfill(ballobj[i].x,ballobj[i].y,ball.radius,_ball_color)
+
 	
 		if ballobj[i].sticky then
 			--animated serve preview dots
@@ -803,7 +812,7 @@ function get_powerup(_powerup)
 	elseif _powerup==6 then
 		--megaball
 		powerup.type=6
-		powerup.timer.megaball=600
+		powerup.timer.megaball=100
 	elseif _powerup==7 then
 		--multiball
 		powerup.type=7
@@ -1321,6 +1330,16 @@ function spawn_trail(_x,_y)
 		local _offset_y=cos(_angle)*ball.radius*0.5
 		add_particle(_x+_offset_x,_y+_offset_y,0,0,0,15+rnd(15),{10,9},0)
 	end
+end
+
+function spawn_mega_trail(_x,_y)
+	--use trig to make sure particles spawn *around* ball
+	--(not in a square around the ball)
+	--for i=0,5 do  --try this for a cool fire tail effect!
+	local _angle=rnd()
+	local _offset_x=sin(_angle)*ball.radius
+	local _offset_y=cos(_angle)*ball.radius
+	add_particle(_x+_offset_x,_y+_offset_y,0,0,2,45+rnd(15),{14,13,2},1+rnd(1))
 end
 
 --small puft (paddle and walls)
