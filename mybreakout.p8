@@ -110,6 +110,7 @@ function _init()
 		--s = exploding brick
 		--p = powerup brick
 		
+		"b9bv9vx9xp9px9xb9bv9vx9xp9p",
 		"b9bx9xb9bx9xb9b",
 		"s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
 		"b9b/xixbbpbbxix/hphphphphph",
@@ -747,8 +748,8 @@ function spawn_pill(_brickx,_bricky)
 	local _pillobj={}
 	_pillobj.x=_brickx
 	_pillobj.y=_bricky
-	--_pillobj.type=flr(rnd(7))+1
-	_pillobj.type=3
+	_pillobj.type=flr(rnd(7))+1
+	--_pillobj.type=3
 	--[[ test powerups
 	t=flr(rnd(2))
 	if t==1 then
@@ -1278,8 +1279,6 @@ function shatter_brick(_brick,_vx,_vy)
 	--screenshake and sound
 	if shake<0.05
 		shake+=0.06
-	if shake>1 then
-		shake=1
 	end
 	sfx(13)
 
