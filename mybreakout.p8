@@ -1275,8 +1275,14 @@ function animate_bricks()
 end
 
 function shatter_brick(_brick,_vx,_vy)
-	shake=0.06
+	--screenshake and sound
+	if shake<0.05
+		shake+=0.06
+	if shake>1 then
+		shake=1
+	end
 	sfx(13)
+
 	_brick.dx=_vx*1 --multiplier can be increased to make brick hits fly further
 	_brick.dy=_vy*1
 	for _x=0,brick.width do
