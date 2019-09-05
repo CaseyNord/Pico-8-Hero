@@ -7,7 +7,6 @@ __lua__
 --juicyness
 --	particles
 --	- death particles
---	- collision particles
 -- 	- pickup particles
 --	- explosions
 --high score 
@@ -349,13 +348,15 @@ function updateball(_i)
 		if _nextx>playarea.right or _nextx<playarea.left then
 			_nextx=mid(playarea.left,_nextx,playarea.right)
 			_ballobj.dx=-_ballobj.dx
-		sfx(01)
+			sfx(01)
+			spawn_puft(_nextx,_nexty)
 		end
 		--check ceiling
 		if _nexty<playarea.ceiling then
 			_nexty=mid(playarea.ceiling,_nexty,playarea.floor)
 			_ballobj.dy=-_ballobj.dy
-		sfx(01)
+			sfx(01)
+			spawn_puft(_nextx,_nexty)
 		end
 
 		--checks for paddle collision
@@ -401,6 +402,7 @@ function updateball(_i)
 			end
 			player.combo=0 --resets combo when ball hits paddle
 			sfx(01)
+			spawn_puft(_nextx,_nexty)
 
 			--catch powerup
 			if paddle.sticky and _ballobj.dy<0 then
@@ -1123,7 +1125,12 @@ end
 -->8
 -- particles --
 
-function add_particle(_x,_y,_dx,_dy,_type,_lifespan,_color)
+--type 0 - static pixel
+--type 1 - gravity pixel
+--type 2 - ball of smoke
+--type 3 - rotating sprite
+
+function add_particle(_x,_y,_dx,_dy,_type,_lifespan,_color,_size)
 	local _p={}
 	_p.x=_x
 	_p.y=_y
@@ -1136,6 +1143,8 @@ function add_particle(_x,_y,_dx,_dy,_type,_lifespan,_color)
 	_p.color_array=_color
 	_p.rotate_tmr=0
 	_p.rotate=0
+	_p.size=_size
+	_p.original_size=_size
 	add(ptcl,_p)
 end
 
@@ -1177,7 +1186,19 @@ function update_particles()
 						_p.rotate=0
 					end
 				end
-			end	
+			end
+
+			--shrink
+			if _p.type==2 then
+				local _ci=1-(_p.age/_p.lifespan)
+				_p.size=_ci*_p.original_size
+			end
+
+			--friction
+			if _p.type==2 then
+				_p.dx=_p.dx/1.2
+				_p.dx=_p.dx/1.2
+			end
 
 			--move particle
 			_p.x+=_p.dx
@@ -1192,6 +1213,9 @@ function draw_particles()
 		--pixel particles
 		if _p.type==0 or _p.type==1 then
 			pset(_p.x,_p.y,_p.color)
+		elseif _p.type==2 then
+			circfill(_p.x,_p.y,_p.size,_p.color)
+		--rotating sprite
 		elseif _p.type==3 then
 			local _fx,_fy
 			if _p.rotate==2 then
@@ -1261,7 +1285,7 @@ function shatter_brick(_brick,_vx,_vy)
 				local _angle=rnd()
 				local _dx=sin(_angle)*rnd(2)+(_vx*0.5)
 				local _dy=cos(_angle)*rnd(2)+(_vy*0.5)
-				add_particle(_brick.x+_x,_brick.y+_y,_dx,_dy,1,120,{7,6,5})
+				add_particle(_brick.x+_x,_brick.y+_y,_dx,_dy,1,120,{7,6,5},0)
 			end
 		end
 	end
@@ -1273,7 +1297,7 @@ function shatter_brick(_brick,_vx,_vy)
 			local _dx=sin(_angle)*rnd(2)+(_vx*0.5)
 			local _dy=cos(_angle)*rnd(2)+(_vy*0.5)
 			local _spr=16+flr(rnd(15))
-			add_particle(_brick.x,_brick.y,_dx,_dy,3,80,{_spr})
+			add_particle(_brick.x,_brick.y,_dx,_dy,3,80,{_spr},0)
 		end
 	end
 end
@@ -1281,11 +1305,23 @@ end
 function spawn_trail(_x,_y)
 	--use trig to make sure particles spawn *around* ball
 	--(not in a square around the ball)
+	--for i=0,5 do  --try this for a cool fire tail effect!
 	if rnd()<0.5 then
 		local _angle=rnd()
 		local _offset_x=sin(_angle)*ball.radius*0.5
 		local _offset_y=cos(_angle)*ball.radius*0.5
-		add_particle(_x+_offset_x,_y+_offset_y,0,0,0,15+rnd(15),{10,9})
+		add_particle(_x+_offset_x,_y+_offset_y,0,0,0,15+rnd(15),{10,9},0)
+	end
+end
+
+function spawn_puft(_x,_y)
+	--use trig to make sure particles spawn *around* ball
+	--(not in a square around the ball)
+	for i=0,5 do
+		local _angle=rnd()
+		local _dx=sin(_angle)*0.5
+		local _dy=cos(_angle)*0.5
+		add_particle(_x,_y,_dx,_dy,2,15+rnd(15),{6,7},1+rnd(2))
 	end
 end
 
