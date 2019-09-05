@@ -7,8 +7,8 @@ __lua__
 --juicyness
 --	particles
 --	- death particles
--- 	- pickup particles
 --	- explosions
+--  - megaball effects
 --high score 
 --ui
 --	powerup messages
@@ -110,6 +110,7 @@ function _init()
 		--s = exploding brick
 		--p = powerup brick
 		
+		"b9bv9vx9xp9px9xb9bv9vx9xp9p",
 		"b9bx9xb9bx9xb9b",
 		"s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
 		"b9b/xixbbpbbxix/hphphphphph",
@@ -160,6 +161,7 @@ function _update60()
 
 	--always update particles so they can always be used!
 	update_particles()
+	--same with screen shake!
 	screen_shake()
 
 	if manager.mode=="game" then
@@ -288,14 +290,17 @@ function update_game()
 		updateball(i)
 	end
 
-	--move pills
 	for i=#pillobj,1,-1 do --counts backwards so you don't collide when deleting objects
+		--move pills
 		pillobj[i].y+=pill.speed
-		if pillobj[i].y > playarea.floor then
+		--check for pill falling off stage
+		if pillobj[i].y>playarea.floor then
 			del(pillobj,pillobj[i])
+		--check for pill/paddle collision
 		elseif boxcollide(pillobj[i].x,pillobj[i].y,pill.width,pill.height,paddle.x,paddle.y,paddle.width,paddle.height) then
 			sfx(10)
 			get_powerup(pillobj[i].type)
+			spawn_pill_puft(pillobj[i].x,pillobj[i].y,pillobj[i].type)
 			del(pillobj,pillobj[i])
 		end
 	end
@@ -445,7 +450,11 @@ function updateball(_i)
 		_ballobj.y=_nexty
 
 		--update ball trail
-		spawn_trail(_nextx,_nexty)
+		if powerup.timer.megaball>0 then
+			spawn_mega_trail(_nextx,_nexty)
+		else
+			spawn_trail(_nextx,_nexty)
+		end
 		
 		--check floor
 		if _nexty>playarea.floor then
@@ -556,7 +565,12 @@ function draw_game()
 
 	--draw balls
 	for i=1,#ballobj do
-		circfill(ballobj[i].x,ballobj[i].y,ball.radius,ball.colour)
+		local _ball_color=10
+		if powerup.timer.megaball>0 then
+			_ball_color=14
+		end
+		circfill(ballobj[i].x,ballobj[i].y,ball.radius,_ball_color)
+
 	
 		if ballobj[i].sticky then
 			--animated serve preview dots
@@ -747,8 +761,8 @@ function spawn_pill(_brickx,_bricky)
 	local _pillobj={}
 	_pillobj.x=_brickx
 	_pillobj.y=_bricky
-	--_pillobj.type=flr(rnd(7))+1
-	_pillobj.type=3
+	_pillobj.type=flr(rnd(7))+1
+	--_pillobj.type=3
 	--[[ test powerups
 	t=flr(rnd(2))
 	if t==1 then
@@ -798,7 +812,7 @@ function get_powerup(_powerup)
 	elseif _powerup==6 then
 		--megaball
 		powerup.type=6
-		powerup.timer.megaball=600
+		powerup.timer.megaball=100
 	elseif _powerup==7 then
 		--multiball
 		powerup.type=7
@@ -1190,14 +1204,14 @@ function update_particles()
 
 			--shrink
 			if _p.type==2 then
-				local _ci=1-(_p.age/_p.lifespan)
-				_p.size=_ci*_p.original_size
+				local _shrink_mult=1-(_p.age/_p.lifespan)
+				_p.size=_shrink_mult*_p.original_size
 			end
 
 			--friction
 			if _p.type==2 then
 				_p.dx=_p.dx/1.2
-				_p.dx=_p.dx/1.2
+				_p.dy=_p.dy/1.2
 			end
 
 			--move particle
@@ -1275,8 +1289,12 @@ function animate_bricks()
 end
 
 function shatter_brick(_brick,_vx,_vy)
-	shake=0.06
+	--screenshake and sound
+	if shake<0.05 then
+		shake+=0.06
+	end
 	sfx(13)
+
 	_brick.dx=_vx*1 --multiplier can be increased to make brick hits fly further
 	_brick.dy=_vy*1
 	for _x=0,brick.width do
@@ -1314,6 +1332,17 @@ function spawn_trail(_x,_y)
 	end
 end
 
+function spawn_mega_trail(_x,_y)
+	--use trig to make sure particles spawn *around* ball
+	--(not in a square around the ball)
+	--for i=0,5 do  --try this for a cool fire tail effect!
+	local _angle=rnd()
+	local _offset_x=sin(_angle)*ball.radius
+	local _offset_y=cos(_angle)*ball.radius
+	add_particle(_x+_offset_x,_y+_offset_y,0,0,2,45+rnd(15),{14,13,2},1+rnd(1))
+end
+
+--small puft (paddle and walls)
 function spawn_puft(_x,_y)
 	--use trig to make sure particles spawn *around* ball
 	--(not in a square around the ball)
@@ -1322,6 +1351,43 @@ function spawn_puft(_x,_y)
 		local _dx=sin(_angle)*0.5
 		local _dy=cos(_angle)*0.5
 		add_particle(_x,_y,_dx,_dy,2,15+rnd(15),{6,7},1+rnd(2))
+	end
+end
+
+--colored puft
+function spawn_pill_puft(_x,_y,_pill)
+	--use trig to make sure particles spawn *around* ball
+	--(not in a square around the ball)
+	for i=0,20 do
+		local _angle=rnd()
+		local _dx=sin(_angle)*(1+rnd(2))
+		local _dy=cos(_angle)*(1+rnd(2))
+		local _color={8,8,8,4,2,0}
+					
+		if _pill == 1 then
+		-- slowdown -- orange
+		_color={9,9,4,4,0}
+		elseif _pill == 2 then
+		-- life -- white
+		_color={7,7,6,5,0}
+		elseif _pill == 3 then
+		-- catch -- green
+		_color={11,11,3,3,0}
+		elseif _pill == 4 then
+		-- expand -- blue
+		_color={12,12,5,5,0}
+		elseif _pill == 5 then
+		-- reduce -- black
+		_color={0,0,5,5,6}
+		elseif _pill == 6 then
+		-- megaball -- pink
+		_color={14,14,13,2,0}
+		else
+		-- multiball -- red
+		_color={8,8,4,2,0}
+		end
+
+		add_particle(_x,_y,_dx,_dy,2,20+rnd(15),_color,1+rnd(3))
 	end
 end
 
