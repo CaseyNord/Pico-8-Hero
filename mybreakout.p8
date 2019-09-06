@@ -4,11 +4,6 @@ __lua__
 -- goals --
 --variable scope in functions
 --fix level clear after brick explode
---juicyness
---	particles
---	- death particles
---	- explosions
---  - megaball effects
 --high score 
 --ui
 --	powerup messages
@@ -16,7 +11,11 @@ __lua__
 --better collision
 --gameplay tweaks
 --	- smaller paddle
---game complete
+--level design	
+--sound
+--	- level over finale
+--  - start screen music
+--  - hight score music
 
 --[[
 
@@ -98,7 +97,7 @@ function _init()
 		left=2,
 		right=125,
 		ceiling=9,
-		floor=135
+		floor=127
 	}
 
 	level={
@@ -109,7 +108,9 @@ function _init()
 		--h = hardened brick
 		--s = exploding brick
 		--p = powerup brick
-		
+
+		"s9s",
+		"s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s",	
 		"b9bv9vx9xp9px9xb9bv9vx9xp9p",
 		"b9bx9xb9bx9xb9b",
 		"s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
@@ -170,6 +171,8 @@ function _update60()
 		update_start_menu()
 	elseif manager.mode=="levelover" then
 		update_level_over()
+	elseif manager.mode=="leveloverwait" then
+		update_level_over_wait()
 	elseif manager.mode=="gameoverwait" then
 		update_gameoverwait()
 	elseif manager.mode=="gameover" then
@@ -198,10 +201,33 @@ function update_start_menu()
 		end
 	end
 end
+	
+function update_level_over_wait()
+    gameover_countdown-=1 --todo: change name of gameover countdown to something like transition_countdown
+    if gameover_countdown<=0 then
+        gameover_countdown=-1
+        manager.mode="levelover"
+    end
+end
 
+--todo: this code is repeated both here and in update_gameover... refactor into function and see if possible to pass functions
 function update_level_over()
-	if btnp(5) then
-		next_level()
+	--blinking effects at level over
+	if gameover_countdown<0 then
+		if btnp(5) then
+			gameover_countdown=80
+			blink_speed=1
+			sfx(15)
+		end
+	else
+		gameover_countdown-=1
+		fade_percentage=(80-gameover_countdown)/80
+		if gameover_countdown<= 0then
+			gameover_countdown=-1
+			blink_speed=9
+			pal()
+			next_level()
+		end
 	end
 end
 
@@ -459,6 +485,7 @@ function updateball(_i)
 		--check floor
 		if _nexty>playarea.floor then
 			sfx(00)
+			spawn_death(_ballobj.x,_ballobj.y)
 			--lose multiball
 			if #ballobj>1 then
 				shake+=0.1
@@ -487,6 +514,8 @@ function _draw()
 		draw_start_menu()
 	elseif manager.mode=="levelover" then
 		draw_level_over()
+	elseif manager.mode=="leveloverwait" then
+		draw_game()
 	elseif manager.mode=="gameoverwait" then
 		draw_game()
 	elseif manager.mode=="gameover" then
@@ -511,7 +540,7 @@ end
 function draw_level_over()
 	rectfill(0,49,127,62,0)
 	print("stage clear!",40,50,7)
-	print("press ❎ to continue",24,57,6)
+	print("press ❎ to continue",24,57,blink_color)
 end
 
 function draw_gameover()
@@ -627,7 +656,10 @@ function start_game()
 end
 
 function level_over()
-	manager.mode="levelover"
+	manager.mode="leveloverwait"
+	gameover_countdown=60
+	blink_frame=0 --resetting this prevents a green frame from appearing
+	blink_speed=16
 end
 
 function next_level()
@@ -647,7 +679,7 @@ function gameover()
 	manager.mode="gameoverwait"
 	gameover_countdown=60
 	blink_frame=0 --resetting this prevents a green frame from appearing
-	blink_speed=11
+	blink_speed=16
 end
 
 function level_finished()
@@ -849,6 +881,7 @@ function hit_brick(_i,_combo)
 	--explosion brick
 	elseif brickobj[_i].type=="s" then
 		sfx(02+player.combo)
+		shatter_brick(brickobj[_i],last_hit_x,last_hit_y)
 		brickobj[_i].type="zz"				
 		player.points+=10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
@@ -866,18 +899,19 @@ end
 
 function check_for_explosions()
 	for i=1,#brickobj do
-		if brickobj[i].type=="z" and brickobj[i].visible then
-			brick_explode(i)
-			--brick explosion effect
-			shake+=0.2
-			if shake>1 then
-				shake=1
-			end
-		end
-	end
-	for i=1,#brickobj do
 		if brickobj[i].type=="zz" then
 			brickobj[i].type="z"
+		end
+	end
+
+	for i=1,#brickobj do
+		if brickobj[i].type=="z" and brickobj[i].visible then
+			--brick explosion effect
+			brick_explode(i)
+			spawn_explosion(brickobj[i].x,brickobj[i].y)
+			if shake<0.4 then
+				shake+=0.1
+			end
 		end
 	end
 end
@@ -1391,6 +1425,47 @@ function spawn_pill_puft(_x,_y,_pill)
 	end
 end
 
+--death particles
+function spawn_death(_x,_y)
+	--use trig to make sure particles spawn *around* ball
+	--(not in a square around the ball)
+	for i=0,20 do
+		local _angle=rnd()
+		local _dx=sin(_angle)*(2+rnd(4))
+		local _dy=cos(_angle)*(2+rnd(4))
+		local _color={10,10,9,4}
+
+		add_particle(_x,_y,_dx,_dy,2,80+rnd(15),_color,3+rnd(6))
+	end
+end
+
+--explosions
+function spawn_explosion(_x,_y)
+	--use trig to make sure particles spawn *around* ball
+	--(not in a square around the ball)
+	sfx(12)
+
+	--first smoke
+	for i=0,20 do
+		local _angle=rnd()
+		local _dx=sin(_angle)*(rnd(4))
+		local _dy=cos(_angle)*(rnd(4))
+		local _color={0,0,5,5,6}
+
+		add_particle(_x,_y,_dx,_dy,2,80+rnd(15),_color,3+rnd(6))
+	end
+	
+	--fireball
+	for i=0,30 do
+		local _angle=rnd()
+		local _dx=sin(_angle)*(1+rnd(4))
+		local _dy=cos(_angle)*(1+rnd(4))
+		local _color={7,10,9,8,5}
+
+		add_particle(_x,_y,_dx,_dy,2,30+rnd(15),_color,2+rnd(4))
+	end
+end
+
 __gfx__
 0000000006777760066666600677776006777760f677776f06777760067777600000000000000000000000000000000000000000000000000000000000000000
 00000000659949556575775565b33b5565c1c1556508805565e22255658222550000000000000000000000000000000000000000000000000000000000000000
@@ -1419,5 +1494,7 @@ __sfx__
 000200003c560367603675036730367003a3000930015400000001340012400114001040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000400001d7501f75021750257502b7503f3303f32038310017000370000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0008000013017130171f0271f027140271402721037210371503715047230472304717057170572505725057105070e5070c5070b5070a507085070750705507035070350701507150071600718007190071c007
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-010400003d6302d6301f6301a630126200f6150d6240a615096140861507614006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00030000166631b663286633466138661126511065124651276520c6520b6421c6421d6420b642096420f642106420764206642096420a6320463203632066320863501614006150061400611006110061100611
+000400003d6302d6301f6301a630126200f6150d6240a615096140861507614006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00030000290502905035040350402403024030240302403029050290503503035030240202402024020240202903029030350203502024010240102401024015035070350701507150071600718007190071c007
+010300002805128051310303103036030390301f0301f0302803128031310303103036030390301f0101f01028010280103101031010360103901010010100102801028010310103101036010390161001610016
