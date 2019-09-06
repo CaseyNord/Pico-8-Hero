@@ -5,8 +5,6 @@ __lua__
 --variable scope in functions
 --fix level clear after brick explode
 --juicyness
---	particles
---	- explosions
 --  stage clear wait
 --high score 
 --ui
@@ -850,6 +848,7 @@ function hit_brick(_i,_combo)
 	--explosion brick
 	elseif brickobj[_i].type=="s" then
 		sfx(02+player.combo)
+		shatter_brick(brickobj[_i],last_hit_x,last_hit_y)
 		brickobj[_i].type="zz"				
 		player.points+=10*(player.combo+1)*powerup.multiplier
 		combo(_combo)
@@ -877,8 +876,8 @@ function check_for_explosions()
 			--brick explosion effect
 			brick_explode(i)
 			spawn_explosion(brickobj[i].x,brickobj[i].y)
-			if shake<0.5 then
-				shake+=0.4
+			if shake<0.4 then
+				shake+=0.1
 			end
 		end
 	end
@@ -1416,8 +1415,8 @@ function spawn_explosion(_x,_y)
 	--first smoke
 	for i=0,20 do
 		local _angle=rnd()
-		local _dx=sin(_angle)*(2+rnd(4))
-		local _dy=cos(_angle)*(2+rnd(4))
+		local _dx=sin(_angle)*(rnd(4))
+		local _dy=cos(_angle)*(rnd(4))
 		local _color={0,0,5,5,6}
 
 		add_particle(_x,_y,_dx,_dy,2,80+rnd(15),_color,3+rnd(6))
@@ -1426,8 +1425,8 @@ function spawn_explosion(_x,_y)
 	--fireball
 	for i=0,30 do
 		local _angle=rnd()
-		local _dx=sin(_angle)*(2+rnd(4))
-		local _dy=cos(_angle)*(2+rnd(4))
+		local _dx=sin(_angle)*(1+rnd(4))
+		local _dy=cos(_angle)*(1+rnd(4))
 		local _color={7,10,9,8,5}
 
 		add_particle(_x,_y,_dx,_dy,2,30+rnd(15),_color,2+rnd(4))
