@@ -6,9 +6,8 @@ __lua__
 --fix level clear after brick explode
 --juicyness
 --	particles
---	- death particles
 --	- explosions
---  - megaball effects
+--  stage clear wait
 --high score 
 --ui
 --	powerup messages
@@ -98,7 +97,7 @@ function _init()
 		left=2,
 		right=125,
 		ceiling=9,
-		floor=135
+		floor=127
 	}
 
 	level={
@@ -109,7 +108,8 @@ function _init()
 		--h = hardened brick
 		--s = exploding brick
 		--p = powerup brick
-		
+
+		"s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s",	
 		"b9bv9vx9xp9px9xb9bv9vx9xp9p",
 		"b9bx9xb9bx9xb9b",
 		"s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
@@ -459,6 +459,7 @@ function updateball(_i)
 		--check floor
 		if _nexty>playarea.floor then
 			sfx(00)
+			spawn_death(_ballobj.x,_ballobj.y)
 			--lose multiball
 			if #ballobj>1 then
 				shake+=0.1
@@ -866,18 +867,19 @@ end
 
 function check_for_explosions()
 	for i=1,#brickobj do
-		if brickobj[i].type=="z" and brickobj[i].visible then
-			brick_explode(i)
-			--brick explosion effect
-			shake+=0.2
-			if shake>1 then
-				shake=1
-			end
-		end
-	end
-	for i=1,#brickobj do
 		if brickobj[i].type=="zz" then
 			brickobj[i].type="z"
+		end
+	end
+
+	for i=1,#brickobj do
+		if brickobj[i].type=="z" and brickobj[i].visible then
+			--brick explosion effect
+			brick_explode(i)
+			spawn_explosion(brickobj[i].x,brickobj[i].y)
+			if shake<0.5 then
+				shake+=0.4
+			end
 		end
 	end
 end
@@ -1388,6 +1390,46 @@ function spawn_pill_puft(_x,_y,_pill)
 		end
 
 		add_particle(_x,_y,_dx,_dy,2,20+rnd(15),_color,1+rnd(3))
+	end
+end
+
+--death particles
+function spawn_death(_x,_y)
+	--use trig to make sure particles spawn *around* ball
+	--(not in a square around the ball)
+	for i=0,20 do
+		local _angle=rnd()
+		local _dx=sin(_angle)*(2+rnd(4))
+		local _dy=cos(_angle)*(2+rnd(4))
+		local _color={10,10,9,4}
+
+		add_particle(_x,_y,_dx,_dy,2,80+rnd(15),_color,3+rnd(6))
+	end
+end
+
+--explosions
+function spawn_explosion(_x,_y)
+	--use trig to make sure particles spawn *around* ball
+	--(not in a square around the ball)
+
+	--first smoke
+	for i=0,20 do
+		local _angle=rnd()
+		local _dx=sin(_angle)*(2+rnd(4))
+		local _dy=cos(_angle)*(2+rnd(4))
+		local _color={0,0,5,5,6}
+
+		add_particle(_x,_y,_dx,_dy,2,80+rnd(15),_color,3+rnd(6))
+	end
+	
+	--fireball
+	for i=0,30 do
+		local _angle=rnd()
+		local _dx=sin(_angle)*(2+rnd(4))
+		local _dy=cos(_angle)*(2+rnd(4))
+		local _color={7,10,9,8,5}
+
+		add_particle(_x,_y,_dx,_dy,2,30+rnd(15),_color,2+rnd(4))
 	end
 end
 
