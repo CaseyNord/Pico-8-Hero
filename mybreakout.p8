@@ -34,13 +34,15 @@ game notes:
 function _init()
 	cls()
 
+	cartdata("nord_breakout_1")
 	manager={
 		mode="startmenu",
 		level_number=1,
-		debug=false
+		debug=true
 	}
 
-	-- global effect variables --
+	-- globals --
+	debug_var=""
 	shake=0
 	countdown=-1
 	arrow_anim_spd=30
@@ -55,13 +57,11 @@ function _init()
 	blink_seq_01={3,11,7,11}
 	blink_seq_02={0,5,6,7,6,5}
 	fade_percentage=0
-	ball={
-		radius=2,
-		colour=10
-	}
 
-	last_hit_x=0
-	last_hit_y=0
+	--set up high score
+	high_score={}
+	load_high_score()
+	high_score[1]=1000
 
 	level={
 		--x = empty space
@@ -87,6 +87,11 @@ function _init()
 		"ib3xb3iibbsbxbsbbi/ib3xb3iibsbbxbbsbi/ib3xb3iibbsbxbsbbi", --lvl 6
 		--"////x4b/i9x", --bonus lvl?
 		--"" --empty level?
+	}
+
+	ball={
+		radius=2,
+		colour=10
 	}
 
 	paddle={
@@ -145,8 +150,10 @@ function _init()
 	}
 
 	--global particle table
-	--(particles are handled by functions)
 	ptcl={}
+	
+	last_hit_x=0 --used with particles
+	last_hit_y=0 --used with particles
 end
 
 -->8
@@ -533,6 +540,7 @@ end
 function draw_start_menu()
 	rectfill(0,0,128,128,5)
 	print("breakout",48,50,7)
+	print_high_score(0)
 	print("press ❎ to start",31,70,blink_color)
 end
 
@@ -626,8 +634,8 @@ function draw_game()
 	--top screen banner (ui)
 	rectfill(0,0,128,6,0)
 	if manager.debug then
-		manager.debug_value=powerup.timer
-		print("cpu:"..stat(1),0,0,7)
+		print("cpu:"..stat(1),0,1,7)
+		print(debug_var,64,1,7)
 	else
 		print("lives:"..player.lives,0,0,7)
 		print("points:"..player.points,68,0,7)
@@ -1466,6 +1474,44 @@ end
 
 -->8
 -- high score --
+
+function reset_high_score()
+	--create defauly data
+	high_score={500,400,300,200,100}
+	save_high_score()
+end
+
+function save_high_score()
+	local _slot=0
+	--save a 1 to first slot so it can be checked to verify tht data exists
+	dset(0,1)
+	for i=1,#high_score do
+		_slot+=1
+		dset(_slot,high_score[i])
+	end
+end
+
+function load_high_score()
+	local _slot=0
+	if dget(0)==1 then
+		--if data exists, load it
+		for i=1,5 do
+			_slot+=1
+			high_score[i]=dget(_slot)
+		end
+	else
+		--file must be empty so...
+		reset_high_score()	
+	end
+end
+
+function print_high_score(_x)
+	for i=1,5 do
+		print(i.." - ",_x+30,10+7*i,7)
+		local _score=" "..high_score[i]
+		print(_score,_x+100-(#_score*4),10+7*i,7)
+	end
+end
 
 __gfx__
 0000000006777760066666600677776006777760f677776f06777760067777600000000000000000000000000000000000000000000000000000000000000000
