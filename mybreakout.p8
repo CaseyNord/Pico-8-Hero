@@ -34,9 +34,59 @@ game notes:
 function _init()
 	cls()
 
+	manager={
+		mode="startmenu",
+		level_number=1,
+		debug=false
+	}
+
+	-- global effect variables --
+	shake=0
+	countdown=-1
+	arrow_anim_spd=30
+	arrow_frame=0
+	arrow_mult_01=1
+	arrow_mult_02=1
+	gameover_countdown=-1
+	blink_frame=0
+	blink_speed=9
+	blink_color=7
+	blink_seq_index=1
+	blink_seq_01={3,11,7,11}
+	blink_seq_02={0,5,6,7,6,5}
+	fade_percentage=0
 	ball={
 		radius=2,
 		colour=10
+	}
+
+	last_hit_x=0
+	last_hit_y=0
+
+	level={
+		--x = empty space
+		--/ = new row
+		--b = normal brick
+		--i = indestructable brick
+		--h = hardened brick
+		--s = exploding brick
+		--p = powerup brick
+
+		"s9s",
+		"s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s",	
+		"b9bv9vx9xp9px9xb9bv9vx9xp9p",
+		"b9bx9xb9bx9xb9b",
+		"s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
+		"b9b/xixbbpbbxix/hphphphphph",
+		"i9i//h9h//b9b//p9p", --test level one
+		"////xb8xxb8", --lvl 1
+		"//xbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbx", --lvl 2
+		"//b9bb9bb9bb9b", --lvl 3
+		"/bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxb", --lvl 4
+		"ib3xb3iib3xb3i/ib3xb3iib3xb3i/ib3xb3iib3xb3i", --lvl 5
+		"ib3xb3iibbsbxbsbbi/ib3xb3iibsbbxbbsbi/ib3xb3iibbsbxbsbbi", --lvl 6
+		--"////x4b/i9x", --bonus lvl?
+		--"" --empty level?
 	}
 
 	paddle={
@@ -87,12 +137,6 @@ function _init()
 		lives --initialized in start_game()
 	}
 
-	manager={
-		mode="startmenu",
-		level_number, --initialized in start_game()
-		debug=false
-	}
-	
 	playarea={
 		left=2,
 		right=125,
@@ -100,54 +144,9 @@ function _init()
 		floor=127
 	}
 
-	level={
-		--x = empty space
-		--/ = new row
-		--b = normal brick
-		--i = indestructable brick
-		--h = hardened brick
-		--s = exploding brick
-		--p = powerup brick
-
-		"s9s",
-		"s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s",	
-		"b9bv9vx9xp9px9xb9bv9vx9xp9p",
-		"b9bx9xb9bx9xb9b",
-		"s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
-		"b9b/xixbbpbbxix/hphphphphph",
-		"i9i//h9h//b9b//p9p", --test level one
-		"////xb8xxb8", --lvl 1
-		"//xbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbx", --lvl 2
-		"//b9bb9bb9bb9b", --lvl 3
-		"/bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxb", --lvl 4
-		"ib3xb3iib3xb3i/ib3xb3iib3xb3i/ib3xb3iib3xb3i", --lvl 5
-		"ib3xb3iibbsbxbsbbi/ib3xb3iibsbbxbbsbi/ib3xb3iibbsbxbsbbi", --lvl 6
-		--"////x4b/i9x", --bonus lvl?
-		--"" --empty level?
-	}
-
-	-- global effect variables --
-	shake=0
-	countdown=-1
-	arrow_anim_spd=30
-	arrow_frame=0
-	arrow_mult_01=1
-	arrow_mult_02=1
-	gameover_countdown=-1
-	blink_frame=0
-	blink_speed=9
-	blink_color=7
-	blink_seq_index=1
-	blink_seq_01={3,11,7,11}
-	blink_seq_02={0,5,6,7,6,5}
-	fade_percentage=0
-
 	--global particle table
 	--(particles are handled by functions)
 	ptcl={}
-
-	last_hit_x=0
-	last_hit_y=0
 end
 
 -->8
@@ -647,7 +646,6 @@ end
 
 function start_game()
 	manager.mode="game"
-	manager.level_number=1
 	player.points=0
 	player.combo=0 --combo chain multiplier
 	player.lives=3
@@ -1465,6 +1463,9 @@ function spawn_explosion(_x,_y)
 		add_particle(_x,_y,_dx,_dy,2,30+rnd(15),_color,2+rnd(4))
 	end
 end
+
+-->8
+-- high score --
 
 __gfx__
 0000000006777760066666600677776006777760f677776f06777760067777600000000000000000000000000000000000000000000000000000000000000000
