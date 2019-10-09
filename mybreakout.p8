@@ -60,8 +60,13 @@ function _init()
 
 	--set up high score
 	high_score={}
+	ini1={}
+	ini2={}
+	ini3={}
+	--reset_high_score()
 	load_high_score()
-	high_score[1]=1000
+	add_high_score(450,1,2,3)
+	high_score_chars={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
 
 	level={
 		--x = empty space
@@ -1010,7 +1015,7 @@ function build_bricks(_lvl)
 	end
 end
 
---collosion detection
+--collision detection
 function hitbox(_bx,_by,_x,_y,_width,_height)
 	if _by-ball.radius>_y+_height then
 		return false
@@ -1475,30 +1480,61 @@ end
 -->8
 -- high score --
 
+function add_high_score(_score,_c1,_c2,_c3)
+	add(high_score,_score)
+	add(ini1,_c1)
+	add(ini2,_c2)
+	add(ini3,_c3)
+	sort_high_score()
+end
+
+function sort_high_score()
+	for i=1,#high_score do
+		local j=i
+		while j>1 and high_score[j-1]<high_score[j] do
+			high_score[j],high_score[j-1]=high_score[j-1],high_score[j]
+			ini1[j],ini1[j-1]=ini1[j-1],ini1[j]
+			ini2[j],ini2[j-1]=ini2[j-1],ini2[j]
+			ini3[j],ini3[j-1]=ini3[j-1],ini3[j]
+			j=j-1
+		end
+	end
+end
+
 function reset_high_score()
-	--create defauly data
-	high_score={500,400,300,200,100}
+	--create default data
+	high_score={10,300,200,400,1000}
+	ini1={5,3,4,2,1}
+	ini2={5,3,4,2,1}
+	ini3={5,3,4,2,1}
 	save_high_score()
 end
 
 function save_high_score()
-	local _slot=0
+	local _slot=1
 	--save a 1 to first slot so it can be checked to verify tht data exists
 	dset(0,1)
-	for i=1,#high_score do
-		_slot+=1
+	for i=1,5 do
 		dset(_slot,high_score[i])
+		dset(_slot+1,ini1[i])
+		dset(_slot+2,ini2[i])
+		dset(_slot+3,ini3[i])
+		_slot+=4
 	end
 end
 
 function load_high_score()
-	local _slot=0
+	local _slot=1
 	if dget(0)==1 then
 		--if data exists, load it
 		for i=1,5 do
-			_slot+=1
 			high_score[i]=dget(_slot)
+			ini1[i]=dget(_slot+1)
+			ini2[i]=dget(_slot+2)
+			ini3[i]=dget(_slot+3)
+			_slot+=4
 		end
+		sort_high_score()
 	else
 		--file must be empty so...
 		reset_high_score()	
@@ -1506,10 +1542,17 @@ function load_high_score()
 end
 
 function print_high_score(_x)
+	rectfill(_x+29,8,_x+99,16,8)
+	print("high scores",_x+43,10,7)
 	for i=1,5 do
-		print(i.." - ",_x+30,10+7*i,7)
+		--rank
+		print(i.." - ",_x+30,14+7*i,1)
+		--name
+		local _name=high_score_chars[ini1[i]]..high_score_chars[ini2[i]]..high_score_chars[ini3[i]]
+		print(_name,_x+45,14+7*i,7)
+		--score
 		local _score=" "..high_score[i]
-		print(_score,_x+100-(#_score*4),10+7*i,7)
+		print(_score,_x+100-(#_score*4),14+7*i,7)
 	end
 end
 
