@@ -52,11 +52,13 @@ function _init()
 	gameover_countdown=-1
 	blink_frame=0
 	blink_speed=9
-	blink_color=7
-	blink_seq_index=1
-	blink_seq_01={3,11,7,11}
-	blink_seq_02={0,5,6,7,6,5}
-	fade_percentage=0
+	blink_green=7
+	blink_green_index=1
+	blink_seq_green={3,11,7,11}
+	blink_white=7
+	blink_white_index=1
+	blink_seq_white={5,6,7,6}
+	fade_percentage=1
 
 	--set up high score
 	high_score={}
@@ -165,11 +167,7 @@ end
 -- update --
 
 function _update60()
-	if manager.mode=="startmenu" then
-		blink(blink_seq_01)
-	elseif manager.mode=="gameover" then
-		blink(blink_seq_02)
-	end
+	blink()
 
 	--always update particles so they can always be used!
 	update_particles()
@@ -194,6 +192,7 @@ end
 -- update functions --
 
 function update_start_menu()
+	fade_in()
 	--blinking effects at game start
 	if countdown<0 then
 		if btnp(5) then
@@ -270,17 +269,15 @@ function update_gameover()
 	end
 end
 
-function update_game()
-	--todo: menu may not currently appear when game is cleared because
-	--		it doesn't have fade if.  check into this.  if that is the
-	--		case write this into a method so it can be called there too
-	--fade in game
-	if fade_percentage~=0 then
-		fade_percentage-=0.05
-		if fade_percentage<0 then
-			fade_percentage=0
-		end
-	end
+function update_win_wait()
+    gameover_countdown-=1 --todo: change name of gameover countdown to something like transition_countdown
+    if gameover_countdown<=0 then
+        gameover_countdown=-1
+        manager.mode="win"
+    end
+end
+
+	fade_in()
 
 	local _button_is_pressed=false
 	--left
@@ -546,19 +543,19 @@ function draw_start_menu()
 	rectfill(0,0,128,128,5)
 	print("breakout",48,50,7)
 	print_high_score(0)
-	print("press ❎ to start",31,70,blink_color)
+	print("press ❎ to start",31,70,blink_green)
 end
 
 function draw_level_over()
 	rectfill(0,49,127,62,0)
 	print("stage clear!",40,50,7)
-	print("press ❎ to continue",24,57,blink_color)
+	print("press ❎ to continue",24,57,blink_green)
 end
 
 function draw_gameover()
 	rectfill(0,49,127,62,0)
 	print("gameover!",48,50,7)
-	print("press ❎ to restart",28,57,blink_color)
+	print("press ❎ to restart",28,57,blink_green)
 end
 
 function draw_game()
@@ -1097,15 +1094,22 @@ function screen_shake()
 	end
 end
 
-function blink(_blinksequence)
+function blink()
 	blink_frame+=1
 	if blink_frame>blink_speed then
 		blink_frame=0
-		blink_seq_index+=1
-		if blink_seq_index>#_blinksequence then
-			blink_seq_index=1
+
+		blink_green_index+=1
+		if blink_green_index>#blink_seq_green then
+			blink_green_index=1
 		end
-		blink_color=_blinksequence[blink_seq_index]
+		blink_green=blink_seq_green[blink_green_index]
+		
+		blink_white_index+=1
+		if blink_white_index>#blink_seq_white then
+			blink_white_index=1
+		end
+		blink_white=blink_seq_white[blink_white_index]
 	end
 end
 
@@ -1121,6 +1125,16 @@ function animate_arrow()
 		_arrow_frame_2=_arrow_frame_2-arrow_anim_spd
 	end
 	arrow_mult_02=1+(2*(_arrow_frame_2/arrow_anim_spd))
+end
+
+-- must be called after fadepal to fade screen back in!
+function fade_in()
+	if fade_percentage!=0 then
+		fade_percentage-=0.05
+		if fade_percentage<0 then
+			fade_percentage=0
+		end
+	end
 end
 
 function fadepal(_perc)
@@ -1177,7 +1191,7 @@ function fadepal(_perc)
 
 		--finally, we change the
 		--palette
-		pal(j,col,1)
+		pal(_j,_col,1)
 	end
 end
 
