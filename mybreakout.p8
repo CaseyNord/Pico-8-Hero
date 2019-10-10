@@ -69,6 +69,8 @@ function _init()
 	load_high_score()
 	add_high_score(450,1,2,3)
 	high_score_chars={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
+	high_score_x=128
+	high_score_dx=128
 
 	level={
 		--x = empty space
@@ -79,19 +81,19 @@ function _init()
 		--s = exploding brick
 		--p = powerup brick
 
-		"s9s",
-		"s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s",	
-		"b9bv9vx9xp9px9xb9bv9vx9xp9p",
-		"b9bx9xb9bx9xb9b",
-		"s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
-		"b9b/xixbbpbbxix/hphphphphph",
-		"i9i//h9h//b9b//p9p", --test level one
-		"////xb8xxb8", --lvl 1
-		"//xbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbx", --lvl 2
-		"//b9bb9bb9bb9b", --lvl 3
-		"/bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxb", --lvl 4
-		"ib3xb3iib3xb3i/ib3xb3iib3xb3i/ib3xb3iib3xb3i", --lvl 5
-		"ib3xb3iibbsbxbsbbi/ib3xb3iibsbbxbbsbi/ib3xb3iibbsbxbsbbi", --lvl 6
+		"s9s"
+		-- "s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s",	
+		-- "b9bv9vx9xp9px9xb9bv9vx9xp9p",
+		-- "b9bx9xb9bx9xb9b",
+		-- "s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
+		-- "b9b/xixbbpbbxix/hphphphphph",
+		-- "i9i//h9h//b9b//p9p", --test level one
+		-- "////xb8xxb8", --lvl 1
+		-- "//xbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbxxbxbxbxbxbx", --lvl 2
+		-- "//b9bb9bb9bb9b", --lvl 3
+		-- "/bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxb", --lvl 4
+		-- "ib3xb3iib3xb3i/ib3xb3iib3xb3i/ib3xb3iib3xb3i", --lvl 5
+		-- "ib3xb3iibbsbxbsbbi/ib3xb3iibsbbxbbsbi/ib3xb3iibbsbxbsbbi", --lvl 6
 		--"////x4b/i9x", --bonus lvl?
 		--"" --empty level?
 	}
@@ -186,6 +188,10 @@ function _update60()
 		update_gameoverwait()
 	elseif manager.mode=="gameover" then
 		update_gameover()
+	elseif manager.mode=="win" then
+		update_win()
+	elseif manager.mode=="winwait" then
+		update_win_wait()
 	end
 end
 
@@ -193,12 +199,24 @@ end
 
 function update_start_menu()
 	fade_in()
+
+	--slide in high score list
+	if high_score_x~=high_score_dx then
+		high_score_x+=(high_score_dx-high_score_x)*0.2
+	end
+	
 	--blinking effects at game start
 	if countdown<0 then
 		if btnp(5) then
 			countdown=80
 			blink_speed=1
 			sfx(11)
+		end
+		if btnp(0) then
+			high_score_dx=0
+		end
+		if btnp(1) then
+			high_score_dx=128
 		end
 	else
 	countdown-=1
@@ -277,6 +295,29 @@ function update_win_wait()
     end
 end
 
+function update_win()
+	--blinking effects at level over
+	if gameover_countdown<0 then
+		if btnp(5) then
+			gameover_countdown=80
+			blink_speed=1
+			sfx(15)
+		end
+	else
+		gameover_countdown-=1
+		fade_percentage=(80-gameover_countdown)/80
+		if gameover_countdown<=0 then
+			gameover_countdown=-1
+			blink_speed=9
+			pal()
+			high_score_x=128
+			high_score_dx=0
+			return start_menu()
+		end
+	end
+end
+
+function update_game()
 	fade_in()
 
 	local _button_is_pressed=false
@@ -343,7 +384,11 @@ end
 
 	if level_finished() then
 		_draw() --final draw to clear last brick
-		level_over()
+		if manager.level_number>=#level then
+			win_game()
+		else
+			level_over()
+		end
 	end
 
 	--powerup clock update
@@ -528,6 +573,10 @@ function _draw()
 		draw_game()
 	elseif manager.mode=="gameover" then
 		draw_gameover()
+	elseif manager.mode=="win" then
+		draw_win()
+	elseif manager.mode=="winwait" then
+		draw_game()
 	end
 
 	--screenfade
@@ -541,9 +590,10 @@ end
 
 function draw_start_menu()
 	rectfill(0,0,128,128,5)
-	print("breakout",48,50,7)
-	print_high_score(0)
+	print_high_score(high_score_x)
+	print("breakout",48+(high_score_x-128),50,7)
 	print("press ❎ to start",31,70,blink_green)
+	print("press ⬅️ for high scores",17,85,3)
 end
 
 function draw_level_over()
@@ -556,6 +606,12 @@ function draw_gameover()
 	rectfill(0,49,127,62,0)
 	print("gameover!",48,50,7)
 	print("press ❎ to restart",28,57,blink_green)
+end
+
+function draw_win()
+	rectfill(0,49,127,62,0)
+	print("congratulations!",37,50,7)
+	print("press ❎ for main menu",24,57,blink_green)
 end
 
 function draw_game()
@@ -672,10 +728,6 @@ end
 
 function next_level()
 	manager.level_number+=1
-	if manager.level_number>#level then
-		--game has been completed
-		return start_menu()
-	end
 	manager.mode="game"
 	player.combo=0 --combo chain multiplier
 	player.lives=3
@@ -685,6 +737,13 @@ end
 
 function gameover()
 	manager.mode="gameoverwait"
+	gameover_countdown=60
+	blink_frame=0 --resetting this prevents a green frame from appearing
+	blink_speed=6
+end
+
+function win_game()
+	manager.mode="winwait"
 	gameover_countdown=60
 	blink_frame=0 --resetting this prevents a green frame from appearing
 	blink_speed=16
@@ -1129,7 +1188,7 @@ end
 
 -- must be called after fadepal to fade screen back in!
 function fade_in()
-	if fade_percentage!=0 then
+	if fade_percentage~=0 then
 		fade_percentage-=0.05
 		if fade_percentage<0 then
 			fade_percentage=0
@@ -1562,11 +1621,15 @@ function print_high_score(_x)
 		--rank
 		print(i.." - ",_x+30,14+7*i,1)
 		--name
+		local _color=7
+		if i==1 then
+			_color=blink_white
+		end
 		local _name=high_score_chars[ini1[i]]..high_score_chars[ini2[i]]..high_score_chars[ini3[i]]
-		print(_name,_x+45,14+7*i,7)
+		print(_name,_x+45,14+7*i,_color)
 		--score
 		local _score=" "..high_score[i]
-		print(_score,_x+100-(#_score*4),14+7*i,7)
+		print(_score,_x+100-(#_score*4),14+7*i,_color)
 	end
 end
 
