@@ -55,6 +55,9 @@ function _init()
 	blink_green=7
 	blink_green_index=1
 	blink_seq_green={3,11,7,11}
+	blink_orange=7
+	blink_orange_index=1
+	blink_seq_orange={10,9,7,9}
 	blink_white=7
 	blink_white_index=1
 	blink_seq_white={5,6,7,6}
@@ -71,6 +74,7 @@ function _init()
 	high_score_chars={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
 	high_score_x=128
 	high_score_dx=128
+	log_high_score=false
 
 	level={
 		--x = empty space
@@ -608,10 +612,33 @@ function draw_gameover()
 	print("press ❎ to restart",28,57,blink_green)
 end
 
+--todo
+function cprint(_string,_y,_col)
+	local _x=(128-#_string*4)*0.5
+	print(_string,_x,_y,_col)
+end
+
 function draw_win()
-	rectfill(0,49,127,62,0)
-	print("congratulations!",37,50,7)
-	print("press ❎ for main menu",24,57,blink_green)
+	if log_high_score then
+		-- one so transition to high score input
+		local _y=30
+		rectfill(0,_y,128,_y+60,12)
+		cprint("★congratulations!★",_y+4,5)
+		cprint("you have beaten the game",_y+16,7)
+		cprint("and earned a high score!",_y+22,7)
+		cprint("enter your initials",_y+28,7)
+		cprint("aaa",_y+40,blink_orange)
+		cprint("press ⬅️➡️❎🅾️ to set",_y+52,6)
+	else
+		-- won but no high score
+		local _y=30
+		rectfill(0,_y,128,_y+48,12)
+		cprint("★congratulations!★",_y+4,5)
+		cprint("you have beaten the game",_y+16,7)
+		cprint("see if you can get",_y+22,7)
+		cprint("a higher score!",_y+28,7)
+		cprint("press ❎ for main menu",_y+40,blink_orange)
+	end
 end
 
 function draw_game()
@@ -747,6 +774,13 @@ function win_game()
 	gameover_countdown=60
 	blink_frame=0 --resetting this prevents a green frame from appearing
 	blink_speed=16
+
+	--check if player earned high score
+	if player.points>high_score[5] then
+		log_high_score=true
+	else
+		log_high_score=true
+	end
 end
 
 function level_finished()
@@ -1163,6 +1197,12 @@ function blink()
 			blink_green_index=1
 		end
 		blink_green=blink_seq_green[blink_green_index]
+		
+		blink_orange_index+=1
+		if blink_orange_index>#blink_seq_orange then
+			blink_orange_index=1
+		end
+		blink_orange=blink_seq_orange[blink_orange_index]
 		
 		blink_white_index+=1
 		if blink_white_index>#blink_seq_white then
