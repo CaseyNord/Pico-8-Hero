@@ -74,10 +74,10 @@ function _init()
 	high_score_x=128
 	high_score_dx=128
 	log_high_score=false
-	initial_confirm=false
+	confirm_initials=false
 
 	initials={1,1,1}
-	initial_select=0
+	select_initial=0
 
 	level={
 		--x = empty space
@@ -317,54 +317,54 @@ function update_win()
 		if log_high_score then -- show high score interface
 			if btnp(0) then --move cursor left
 				sfx(17)
-				if initial_confirm then
+				if confirm_initials then
 					sfx(19)
-					initial_confirm=false
+					confirm_initials=false
 				end
-				initial_select-=1
-				if initial_select<1 then
-					initial_select=3 --todo: initial_select can be initial_index?
+				select_initial-=1
+				if select_initial<1 then
+					select_initial=3 --todo: select_initial can be initial_index?
 				end
 			end
 			if btnp(1) then --move cursor right
 				sfx(17)
-				if initial_confirm then
+				if confirm_initials then
 					sfx(19)
-					initial_confirm=false
+					confirm_initials=false
 				end
-				initial_select+=1
-				if initial_select>3 then
-					initial_select=1
+				select_initial+=1
+				if select_initial>3 then
+					select_initial=1
 				end
 			end
 			if btnp(2) then -- advance chars backward
 				sfx(16)
-				if initial_confirm then
+				if confirm_initials then
 					sfx(19)
-					initial_confirm=false
+					confirm_initials=false
 				end
-				initials[initial_select]-=1
-				if initials[initial_select]<1 then
-					initials[initial_select]=#high_score_chars
+				initials[select_initial]-=1
+				if initials[select_initial]<1 then
+					initials[select_initial]=#high_score_chars
 				end
 			end
 			if btnp(3) then -- advance chars forward
 				sfx(16)
-				if initial_confirm then
+				if confirm_initials then
 					sfx(19)
-					initial_confirm=false
+					confirm_initials=false
 				end
-				initials[initial_select]+=1
-				if initials[initial_select]>#high_score_chars then
-					initials[initial_select]=1
+				initials[select_initial]+=1
+				if initials[select_initial]>#high_score_chars then
+					initials[select_initial]=1
 				end
 			end
 			if btnp(4) then
 				sfx(19)
-				initial_confirm=false
+				confirm_initials=false
 			end
 			if btnp(5) then
-				if initial_confirm then
+				if confirm_initials then
 					add_high_score(player.points,initials[1],initials[2],initials[3])
 					save_high_score()
 					gameover_countdown=80
@@ -372,7 +372,7 @@ function update_win()
 					sfx(15)
 				else
 					sfx(18)
-					initial_confirm=true
+					confirm_initials=true
 				end
 			end
 		else -- show standard end screen
@@ -689,44 +689,38 @@ function draw_gameover()
 	print("press ❎ to restart",28,57,blink_green)
 end
 
---todo
-function cprint(_string,_y,_col)
-	local _x=(128-#_string*4)*0.5
-	print(_string,_x,_y,_col)
-end
-
 function draw_win()
 	if log_high_score then
 		-- one so transition to high score input
 		local _y=30
 		rectfill(0,_y,128,_y+60,12)
-		cprint("★congratulations!★",_y+4,5)
+		cprint("★congratulations!★",_y+4,5,2)
 		cprint("you have beaten the game",_y+16,7)
 		cprint("and earned a high score!",_y+22,7)
 		cprint("enter your initials",_y+28,7)
 		local _colors={7,7,7} -- set colors of initials
-		if initial_confirm then
+		if confirm_initials then
 			_colors={blink_orange,blink_orange,blink_orange}
 		else
-			_colors[initial_select]=blink_orange -- blink selected initial
+			_colors[select_initial]=blink_orange -- blink selected initial
 		end
-		print(high_score_chars[initials[1]],60,_y+40,_colors[1])
-		print(high_score_chars[initials[2]],64,_y+40,_colors[2])
-		print(high_score_chars[initials[3]],68,_y+40,_colors[3])
-		if initial_confirm then
-			cprint("press ❎ to confirm",_y+52,blink_orange)
+		print(high_score_chars[initials[1]],59,_y+40,_colors[1])
+		print(high_score_chars[initials[2]],63,_y+40,_colors[2])
+		print(high_score_chars[initials[3]],67,_y+40,_colors[3])
+		if confirm_initials then
+			cprint("press ❎ to confirm",_y+52,blink_orange,1)
 		else
-			cprint("press ⬅️➡️❎🅾️ to set",_y+52,6)
+			cprint("press ⬅️➡️❎🅾️ to set",_y+52,6,4)
 		end
 	else
 		-- won but no high score
 		local _y=30
 		rectfill(0,_y,128,_y+48,12)
-		cprint("★congratulations!★",_y+4,5)
+		cprint("★congratulations!★",_y+4,5,2)
 		cprint("you have beaten the game",_y+16,7)
 		cprint("see if you can get",_y+22,7)
 		cprint("a higher score!",_y+28,7)
-		cprint("press ❎ for main menu",_y+40,blink_orange)
+		cprint("press ❎ for main menu",_y+40,blink_orange,1)
 	end
 end
 
@@ -856,7 +850,7 @@ function gameover()
 	gameover_countdown=60
 	blink_frame=0 --resetting this prevents a green frame from appearing
 	blink_speed=6
-	reset_high_score_highlight()
+	reset_high_score_highlight(true)
 end
 
 function win_game()
@@ -868,10 +862,10 @@ function win_game()
 	--check if player earned high score
 	if player.points>high_score[5] then
 		log_high_score=true
-		initial_select=1 --make sure cursor starts on first char
+		select_initial=1 --make sure cursor starts on first char
 	else
 		log_high_score=false
-		reset_high_score_highlight()
+		reset_high_score_highlight(true)
 	end
 end
 
@@ -1683,6 +1677,35 @@ function spawn_explosion(_x,_y)
 end
 
 -->8
+-- ui --
+
+function cprint(_string,_y,_col,_spec_chars)
+	local _offset=_spec_chars or 0
+	_offset*=2
+	local _x=(128-#_string*4)*0.5
+	print(_string,_x-_offset,_y,_col)
+end
+
+function print_high_score(_x)
+	rectfill(_x+29,8,_x+99,16,8)
+	print("high scores",_x+43,10,7)
+	for i=1,5 do
+		--rank
+		print(i.." - ",_x+30,14+7*i,1)
+		--name
+		local _color=7
+		if high_score_highlight[i] then
+			_color=blink_white
+		end
+		local _name=high_score_chars[ini1[i]]..high_score_chars[ini2[i]]..high_score_chars[ini3[i]]
+		print(_name,_x+45,14+7*i,_color)
+		--score
+		local _score=" "..high_score[i]
+		print(_score,_x+100-(#_score*4),14+7*i,_color)
+	end
+end
+
+
 -- high score --
 
 function add_high_score(_score,_c1,_c2,_c3)
@@ -1690,41 +1713,27 @@ function add_high_score(_score,_c1,_c2,_c3)
 	add(ini1,_c1)
 	add(ini2,_c2)
 	add(ini3,_c3)
-	for i=1,#high_score_highlight do
-		high_score_highlight[i]=false
-	end
+	reset_high_score_highlight()
 	add(high_score_highlight,true)
 	sort_high_score()
-end
-
-function reset_high_score_highlight()
-	for i=1,#high_score_highlight do
-		high_score_highlight[i]=false
-	end
-	high_score_highlight[1]=true
 end
 
 function sort_high_score()
 	for i=1,#high_score do
 		local j=i
 		while j>1 and high_score[j-1]<high_score[j] do
-			high_score[j],high_score[j-1]=high_score[j-1],high_score[j]
-			ini1[j],ini1[j-1]=ini1[j-1],ini1[j]
-			ini2[j],ini2[j-1]=ini2[j-1],ini2[j]
-			ini3[j],ini3[j-1]=ini3[j-1],ini3[j]
-			high_score_highlight[j],high_score_highlight[j-1]=high_score_highlight[j-1],high_score_highlight[j]
-			j=j-1
+			swap_entries(high_score,j)
+			swap_entries(ini1,j)
+			swap_entries(ini2,j)
+			swap_entries(ini3,j)
+			swap_entries(high_score_highlight,j)
+			j-=1
 		end
 	end
 end
 
-function reset_high_score()
-	--create default data
-	high_score={10,300,200,400,1000}
-	ini1={5,3,4,2,1}
-	ini2={5,3,4,2,1}
-	ini3={5,3,4,2,1}
-	save_high_score()
+function swap_entries(_table,_i)
+	_table[_i],_table[_i-1]=_table[_i-1],_table[_i]
 end
 
 function save_high_score()
@@ -1752,30 +1761,29 @@ function load_high_score()
 			_slot+=4
 		end
 		sort_high_score()
-		reset_high_score_highlight()
+		reset_high_score_highlight(true)
 	else
 		--file must be empty so...
 		reset_high_score()	
 	end
 end
 
-function print_high_score(_x)
-	rectfill(_x+29,8,_x+99,16,8)
-	print("high scores",_x+43,10,7)
-	for i=1,5 do
-		--rank
-		print(i.." - ",_x+30,14+7*i,1)
-		--name
-		local _color=7
-		if high_score_highlight[i] then
-			_color=blink_white
-		end
-		local _name=high_score_chars[ini1[i]]..high_score_chars[ini2[i]]..high_score_chars[ini3[i]]
-		print(_name,_x+45,14+7*i,_color)
-		--score
-		local _score=" "..high_score[i]
-		print(_score,_x+100-(#_score*4),14+7*i,_color)
+function reset_high_score_highlight(_first_entry)
+	for i=1,#high_score_highlight do
+		high_score_highlight[i]=false
 	end
+	if _first_entry then
+		high_score_highlight[1]=true
+	end
+end
+
+function reset_high_score()
+	--create default data
+	high_score={10,300,200,400,1000}
+	ini1={5,3,4,2,1}
+	ini2={5,3,4,2,1}
+	ini3={5,3,4,2,1}
+	save_high_score()
 end
 
 __gfx__
