@@ -77,7 +77,7 @@ function _init()
 	confirm_initials=false
 
 	initials={1,1,1}
-	select_initial=0
+	selected_initial=0
 
 	level={
 		--x = empty space
@@ -321,9 +321,9 @@ function update_win()
 					sfx(19)
 					confirm_initials=false
 				end
-				select_initial-=1
-				if select_initial<1 then
-					select_initial=3 --todo: select_initial can be initial_index?
+				selected_initial-=1
+				if selected_initial<1 then
+					selected_initial=3 --todo: selected_initial can be initial_index?
 				end
 			end
 			if btnp(1) then --move cursor right
@@ -332,31 +332,31 @@ function update_win()
 					sfx(19)
 					confirm_initials=false
 				end
-				select_initial+=1
-				if select_initial>3 then
-					select_initial=1
+				selected_initial+=1
+				if selected_initial>3 then
+					selected_initial=1
 				end
 			end
-			if btnp(2) then -- advance chars backward
+			if btnp(2) then --advance chars backward
 				sfx(16)
 				if confirm_initials then
 					sfx(19)
 					confirm_initials=false
 				end
-				initials[select_initial]-=1
-				if initials[select_initial]<1 then
-					initials[select_initial]=#high_score_chars
+				initials[selected_initial]-=1
+				if initials[selected_initial]<1 then
+					initials[selected_initial]=#high_score_chars
 				end
 			end
-			if btnp(3) then -- advance chars forward
+			if btnp(3) then --advance chars forward
 				sfx(16)
 				if confirm_initials then
 					sfx(19)
 					confirm_initials=false
 				end
-				initials[select_initial]+=1
-				if initials[select_initial]>#high_score_chars then
-					initials[select_initial]=1
+				initials[selected_initial]+=1
+				if initials[selected_initial]>#high_score_chars then
+					initials[selected_initial]=1
 				end
 			end
 			if btnp(4) then
@@ -702,7 +702,7 @@ function draw_win()
 		if confirm_initials then
 			_colors={blink_orange,blink_orange,blink_orange}
 		else
-			_colors[select_initial]=blink_orange -- blink selected initial
+			_colors[selected_initial]=blink_orange -- blink selected initial
 		end
 		print(high_score_chars[initials[1]],59,_y+40,_colors[1])
 		print(high_score_chars[initials[2]],63,_y+40,_colors[2])
@@ -862,7 +862,7 @@ function win_game()
 	--check if player earned high score
 	if player.points>high_score[5] then
 		log_high_score=true
-		select_initial=1 --make sure cursor starts on first char
+		selected_initial=1 --make sure cursor starts on first char
 	else
 		log_high_score=false
 		reset_high_score_highlight(true)
