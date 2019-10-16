@@ -2,20 +2,19 @@ pico-8 cartridge // http://www.pico-8.com
 version 18
 __lua__
 -- goals --
---variable scope in functions
---fix level clear after brick explode
---high score 
+--return to main menu from gameover
 --ui
 --	powerup messages
 --	powerup percentage bar
---better collision
 --gameplay tweaks
 --	- smaller paddle
 --level design	
---sound
+--good to have:
+--sound:
 --	- level over finale
 --  - start screen music
---  - hight score music
+--  - game win music
+--better collision
 
 --[[
 
@@ -38,7 +37,7 @@ function _init()
 	manager={
 		mode="startmenu",
 		level_number=1,
-		debug=true
+		debug=false
 	}
 
 	-- globals --
@@ -68,13 +67,17 @@ function _init()
 	ini1={}
 	ini2={}
 	ini3={}
+	high_score_highlight={true,false,false,false,false}
 	--reset_high_score()
 	load_high_score()
-	add_high_score(450,1,2,3)
 	high_score_chars={"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
 	high_score_x=128
 	high_score_dx=128
 	log_high_score=false
+	confirm_initials=false
+
+	initials={1,1,1}
+	selected_initial=0
 
 	level={
 		--x = empty space
@@ -207,6 +210,9 @@ function update_start_menu()
 	--slide in high score list
 	if high_score_x~=high_score_dx then
 		high_score_x+=(high_score_dx-high_score_x)*0.2
+		if abs(high_score_dx-high_score_x)<0.3 then
+			high_score_x=high_score_dx
+		end
 	end
 	
 	--blinking effects at game start
@@ -217,9 +223,15 @@ function update_start_menu()
 			sfx(11)
 		end
 		if btnp(0) then
+			if high_score_dx~=0 then
+				sfx(20)
+			end
 			high_score_dx=0
 		end
 		if btnp(1) then
+			if high_score_dx~=128 then
+				sfx(20)
+			end
 			high_score_dx=128
 		end
 	else
@@ -302,17 +314,80 @@ end
 function update_win()
 	--blinking effects at level over
 	if gameover_countdown<0 then
-		if btnp(5) then
-			gameover_countdown=80
-			blink_speed=1
-			sfx(15)
+		if log_high_score then -- show high score interface
+			if btnp(0) then --move cursor left
+				sfx(17)
+				if confirm_initials then
+					sfx(19)
+					confirm_initials=false
+				end
+				selected_initial-=1
+				if selected_initial<1 then
+					selected_initial=3 --todo: selected_initial can be initial_index?
+				end
+			end
+			if btnp(1) then --move cursor right
+				sfx(17)
+				if confirm_initials then
+					sfx(19)
+					confirm_initials=false
+				end
+				selected_initial+=1
+				if selected_initial>3 then
+					selected_initial=1
+				end
+			end
+			if btnp(2) then --advance chars backward
+				sfx(16)
+				if confirm_initials then
+					sfx(19)
+					confirm_initials=false
+				end
+				initials[selected_initial]-=1
+				if initials[selected_initial]<1 then
+					initials[selected_initial]=#high_score_chars
+				end
+			end
+			if btnp(3) then --advance chars forward
+				sfx(16)
+				if confirm_initials then
+					sfx(19)
+					confirm_initials=false
+				end
+				initials[selected_initial]+=1
+				if initials[selected_initial]>#high_score_chars then
+					initials[selected_initial]=1
+				end
+			end
+			if btnp(4) then
+				sfx(19)
+				confirm_initials=false
+			end
+			if btnp(5) then
+				if confirm_initials then
+					add_high_score(player.points,initials[1],initials[2],initials[3])
+					save_high_score()
+					gameover_countdown=80
+					blink_speed=1
+					sfx(15)
+				else
+					sfx(18)
+					confirm_initials=true
+				end
+			end
+		else -- show standard end screen
+			blink_speed=8
+			if btnp(5) then
+				gameover_countdown=80
+				sfx(15)
+			end
 		end
 	else
 		gameover_countdown-=1
 		fade_percentage=(80-gameover_countdown)/80
 		if gameover_countdown<=0 then
 			gameover_countdown=-1
-			blink_speed=9
+			blink_speed=9 --set speed back for main menu
 			pal()
 			high_score_x=128
 			high_score_dx=0
@@ -597,7 +672,9 @@ function draw_start_menu()
 	print_high_score(high_score_x)
 	print("breakout",48+(high_score_x-128),50,7)
 	print("press ❎ to start",31,70,blink_green)
-	print("press ⬅️ for high scores",17,85,3)
+	if high_score_x==128 then
+		print("press ⬅️ for high scores",17,85,3)
+	end
 end
 
 function draw_level_over()
@@ -612,32 +689,38 @@ function draw_gameover()
 	print("press ❎ to restart",28,57,blink_green)
 end
 
---todo
-function cprint(_string,_y,_col)
-	local _x=(128-#_string*4)*0.5
-	print(_string,_x,_y,_col)
-end
-
 function draw_win()
 	if log_high_score then
 		-- one so transition to high score input
 		local _y=30
 		rectfill(0,_y,128,_y+60,12)
-		cprint("★congratulations!★",_y+4,5)
+		cprint("★congratulations!★",_y+4,5,2)
 		cprint("you have beaten the game",_y+16,7)
 		cprint("and earned a high score!",_y+22,7)
 		cprint("enter your initials",_y+28,7)
-		cprint("aaa",_y+40,blink_orange)
-		cprint("press ⬅️➡️❎🅾️ to set",_y+52,6)
+		local _colors={7,7,7} -- set colors of initials
+		if confirm_initials then
+			_colors={blink_orange,blink_orange,blink_orange}
+		else
+			_colors[selected_initial]=blink_orange -- blink selected initial
+		end
+		print(high_score_chars[initials[1]],59,_y+40,_colors[1])
+		print(high_score_chars[initials[2]],63,_y+40,_colors[2])
+		print(high_score_chars[initials[3]],67,_y+40,_colors[3])
+		if confirm_initials then
+			cprint("press ❎ to confirm",_y+52,blink_orange,1)
+		else
+			cprint("press ⬅️➡️❎🅾️ to set",_y+52,6,4)
+		end
 	else
 		-- won but no high score
 		local _y=30
 		rectfill(0,_y,128,_y+48,12)
-		cprint("★congratulations!★",_y+4,5)
+		cprint("★congratulations!★",_y+4,5,2)
 		cprint("you have beaten the game",_y+16,7)
 		cprint("see if you can get",_y+22,7)
 		cprint("a higher score!",_y+28,7)
-		cprint("press ❎ for main menu",_y+40,blink_orange)
+		cprint("press ❎ for main menu",_y+40,blink_orange,1)
 	end
 end
 
@@ -767,6 +850,7 @@ function gameover()
 	gameover_countdown=60
 	blink_frame=0 --resetting this prevents a green frame from appearing
 	blink_speed=6
+	reset_high_score_highlight(true)
 end
 
 function win_game()
@@ -778,8 +862,10 @@ function win_game()
 	--check if player earned high score
 	if player.points>high_score[5] then
 		log_high_score=true
+		selected_initial=1 --make sure cursor starts on first char
 	else
-		log_high_score=true
+		log_high_score=false
+		reset_high_score_highlight(true)
 	end
 end
 
@@ -1591,6 +1677,35 @@ function spawn_explosion(_x,_y)
 end
 
 -->8
+-- ui --
+
+function cprint(_string,_y,_col,_spec_chars)
+	local _offset=_spec_chars or 0
+	_offset*=2
+	local _x=(128-#_string*4)*0.5
+	print(_string,_x-_offset,_y,_col)
+end
+
+function print_high_score(_x)
+	rectfill(_x+29,8,_x+99,16,8)
+	print("high scores",_x+43,10,7)
+	for i=1,5 do
+		--rank
+		print(i.." - ",_x+30,14+7*i,1)
+		--name
+		local _color=7
+		if high_score_highlight[i] then
+			_color=blink_white
+		end
+		local _name=high_score_chars[ini1[i]]..high_score_chars[ini2[i]]..high_score_chars[ini3[i]]
+		print(_name,_x+45,14+7*i,_color)
+		--score
+		local _score=" "..high_score[i]
+		print(_score,_x+100-(#_score*4),14+7*i,_color)
+	end
+end
+
+
 -- high score --
 
 function add_high_score(_score,_c1,_c2,_c3)
@@ -1598,6 +1713,8 @@ function add_high_score(_score,_c1,_c2,_c3)
 	add(ini1,_c1)
 	add(ini2,_c2)
 	add(ini3,_c3)
+	reset_high_score_highlight()
+	add(high_score_highlight,true)
 	sort_high_score()
 end
 
@@ -1605,22 +1722,18 @@ function sort_high_score()
 	for i=1,#high_score do
 		local j=i
 		while j>1 and high_score[j-1]<high_score[j] do
-			high_score[j],high_score[j-1]=high_score[j-1],high_score[j]
-			ini1[j],ini1[j-1]=ini1[j-1],ini1[j]
-			ini2[j],ini2[j-1]=ini2[j-1],ini2[j]
-			ini3[j],ini3[j-1]=ini3[j-1],ini3[j]
-			j=j-1
+			swap_entries(high_score,j)
+			swap_entries(ini1,j)
+			swap_entries(ini2,j)
+			swap_entries(ini3,j)
+			swap_entries(high_score_highlight,j)
+			j-=1
 		end
 	end
 end
 
-function reset_high_score()
-	--create default data
-	high_score={10,300,200,400,1000}
-	ini1={5,3,4,2,1}
-	ini2={5,3,4,2,1}
-	ini3={5,3,4,2,1}
-	save_high_score()
+function swap_entries(_table,_i)
+	_table[_i],_table[_i-1]=_table[_i-1],_table[_i]
 end
 
 function save_high_score()
@@ -1648,29 +1761,29 @@ function load_high_score()
 			_slot+=4
 		end
 		sort_high_score()
+		reset_high_score_highlight(true)
 	else
 		--file must be empty so...
 		reset_high_score()	
 	end
 end
 
-function print_high_score(_x)
-	rectfill(_x+29,8,_x+99,16,8)
-	print("high scores",_x+43,10,7)
-	for i=1,5 do
-		--rank
-		print(i.." - ",_x+30,14+7*i,1)
-		--name
-		local _color=7
-		if i==1 then
-			_color=blink_white
-		end
-		local _name=high_score_chars[ini1[i]]..high_score_chars[ini2[i]]..high_score_chars[ini3[i]]
-		print(_name,_x+45,14+7*i,_color)
-		--score
-		local _score=" "..high_score[i]
-		print(_score,_x+100-(#_score*4),14+7*i,_color)
+function reset_high_score_highlight(_first_entry)
+	for i=1,#high_score_highlight do
+		high_score_highlight[i]=false
 	end
+	if _first_entry then
+		high_score_highlight[1]=true
+	end
+end
+
+function reset_high_score()
+	--create default data
+	high_score={10,300,200,400,1000}
+	ini1={5,3,4,2,1}
+	ini2={5,3,4,2,1}
+	ini3={5,3,4,2,1}
+	save_high_score()
 end
 
 __gfx__
@@ -1704,4 +1817,9 @@ __sfx__
 00030000166631b663286633466138661126511065124651276520c6520b6421c6421d6420b642096420f642106420764206642096420a6320463203632066320863501614006150061400611006110061100611
 000400003d6302d6301f6301a630126200f6150d6240a615096140861507614006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00030000290502905035040350402403024030240302403029050290503503035030240202402024020240202903029030350203502024010240102401024015035070350701507150071600718007190071c007
-010300002805128051310303103036030390301f0301f0302803128031310303103036030390301f0101f01028010280103101031010360103901010010100102801028010310103101036010390161001610016
+000300002805128051310303103036030390301f0301f0302803128031310303103036030390301f0101f01028010280103101031010360103901010010100102801028010310103101036010390161001610016
+000300001c7101e7101d7000670000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700
+000300001071012710127000670000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700
+000300002805128051310303103036000390001f0001f0002800028000310003100036000390001f0001f00028000280003100031000360003900010000100002800028000310003100036000390001000010000
+010300003103031030280512805128000280001f0001f0002800028000310003100036000390001f0001f00028000280003100031000360003900010000100002800028000310003100036000390001000010000
+00010000086100b6100f61013610146202962028620266202462022620216200e6200b62008610066100361001610006000460004600086000a6000760001600006000a60009600076000560005600056000b600
