@@ -49,6 +49,7 @@ function _init()
 	arrow_mult_01=1
 	arrow_mult_02=1
 	gameover_countdown=-1
+	gameover_restart=false
 	blink_frame=0
 	blink_speed=9
 	blink_green=7
@@ -61,6 +62,14 @@ function _init()
 	blink_white_index=1
 	blink_seq_white={5,6,7,6}
 	fade_percentage=1
+
+	--sash
+	sash_height=0
+	sash__target_height=0
+	sash_color=8
+	sash_text=""
+	sash_visible=false
+	sash_frames=0
 
 	--set up high score
 	high_score={}
@@ -88,11 +97,11 @@ function _init()
 		--s = exploding brick
 		--p = powerup brick
 
-		--"s9s"
-		-- "s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s",	
+		"s9s",
+	    "s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s"
 		-- "b9bv9vx9xp9px9xb9bv9vx9xp9p",
 		-- "b9bx9xb9bx9xb9b",
-		 "s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb"
+		-- "s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
 		-- "b9b/xixbbpbbxix/hphphphphph",
 		-- "i9i//h9h//b9b//p9p", --test level one
 		-- "////xb8xxb8", --lvl 1
@@ -174,6 +183,8 @@ function _update60()
 	update_particles()
 	--same with screen shake!
 	screen_shake()
+	--and drawing sashes
+	update_sash()
 
 	if manager.mode=="game" then
 		update_game()
@@ -278,19 +289,33 @@ end
 function update_gameover()
 	--blinking effects at gameover
 	if gameover_countdown<0 then
+		if btnp(4) then
+			gameover_countdown=80
+			blink_speed=1
+			sfx(11)
+			gameover_restart=true
+		end
 		if btnp(5) then
 			gameover_countdown=80
 			blink_speed=1
 			sfx(11)
+			gameover_restart=false
 		end
 	else
 		gameover_countdown-=1
 		fade_percentage=(80-gameover_countdown)/80
-		if gameover_countdown<= 0then
+		if gameover_countdown<= 0 then
 			gameover_countdown=-1
 			blink_speed=9
 			pal()
-			start_game()
+			if gameover_restart then
+				start_game()
+			else
+				--make sure high score menu is hidden
+				high_score_x=128
+				high_score_dx=128
+				start_menu()
+			end
 		end
 	end
 end
@@ -383,7 +408,7 @@ function update_win()
 			pal()
 			high_score_x=128
 			high_score_dx=0
-			return start_menu()
+			start_menu()
 		end
 	end
 end
@@ -619,6 +644,7 @@ function updateball(_i)
 				shake+=0.3
 				player.lives-=1
 				if player.lives<0 then
+					player.lives=0
 					gameover()
 				else
 					serve_ball()
@@ -682,9 +708,23 @@ function draw_level_over()
 end
 
 function draw_gameover()
-	rectfill(0,49,127,62,0)
+	rectfill(0,49,127,69,0)
 	print("gameover!",48,50,7)
-	print("press ❎ to restart",28,57,blink_green)
+	local _col1,_col2
+	if gameover_countdown<0 then
+		_col1=blink_white
+		_col2=blink_white
+	else
+		if gameover_restart then
+			_col1=blink_white
+			_col2=5
+		else
+			_col1=5
+			_col2=blink_white
+		end
+	end
+	print("press ❎ to restart",28,57,_col1)
+	cprint("press 🅾️ for main menu",64,_col2,1)
 end
 
 function draw_win()
@@ -821,6 +861,8 @@ function draw_game()
 		print("points:"..player.points,68,0,7)
 		print("combo:"..player.combo,34,0,7)
 	end
+
+	draw_sash()
 end
 
 -->8
@@ -854,6 +896,7 @@ function next_level()
 	player.combo=0 --combo chain multiplier
 	player.lives=3
 	build_bricks(level[manager.level_number])
+	show_sash("stage "..manager.level_number,11)
 	serve_ball()
 end
 
@@ -1697,6 +1740,39 @@ end
 
 -->8
 -- ui --
+
+function show_sash(_text,_color)
+	sash_height=0
+	sash__target_height=9
+	sash_color=_color
+	sash_text=_text
+	sash_frames=0
+	sash_visible=true
+end
+
+function update_sash()
+	if sash_visible then
+		sash_frames+=1
+		--animate width
+		sash_height+=(sash__target_height-sash_height)*0.5
+		if abs(sash__target_height-sash_height)<0.3 then
+			sash_height=sash__target_height
+		end
+		--unanimate sash
+		if sash_frames>60 then
+			sash__target_height=0
+		end
+		if sash_frames>90 then
+			sash_visible=false
+		end
+	end
+end
+
+function draw_sash()
+	if sash_height>0 then
+		rectfill(0,64-sash_height,128,64+sash_height,sash_color)
+	end
+end
 
 function cprint(_string,_y,_col,_spec_chars)
 	local _offset=_spec_chars or 0
