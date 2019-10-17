@@ -65,7 +65,7 @@ function _init()
 
 	--sash
 	sash_height=0
-	sash__target_height=0
+	sash_target_height=0
 	sash_color=8
 	sash_text=""
 	sash_visible=false
@@ -1743,7 +1743,7 @@ end
 
 function show_sash(_text,_color)
 	sash_height=0
-	sash__target_height=9
+	sash_target_height=9
 	sash_color=_color
 	sash_text=_text
 	sash_frames=0
@@ -1754,13 +1754,13 @@ function update_sash()
 	if sash_visible then
 		sash_frames+=1
 		--animate width
-		sash_height+=(sash__target_height-sash_height)*0.5
-		if abs(sash__target_height-sash_height)<0.3 then
-			sash_height=sash__target_height
+		sash_height+=(sash_target_height-sash_height)*0.5
+		if abs(sash_target_height-sash_height)<0.3 then
+			sash_height=sash__arget_height
 		end
 		--unanimate sash
 		if sash_frames>60 then
-			sash__target_height=0
+			sash_target_height=0
 		end
 		if sash_frames>90 then
 			sash_visible=false
