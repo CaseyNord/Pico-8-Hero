@@ -63,6 +63,14 @@ function _init()
 	blink_seq_white={5,6,7,6}
 	fade_percentage=1
 
+	--sash
+	sash_height=0
+	sash__target_height=0
+	sash_color=8
+	sash_text=""
+	sash_visible=false
+	sash_frames=0
+
 	--set up high score
 	high_score={}
 	ini1={}
@@ -89,11 +97,11 @@ function _init()
 		--s = exploding brick
 		--p = powerup brick
 
-		--"s9s"
-		-- "s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s",	
+		"s9s",
+	    "s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s"
 		-- "b9bv9vx9xp9px9xb9bv9vx9xp9p",
 		-- "b9bx9xb9bx9xb9b",
-		 "s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb"
+		-- "s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
 		-- "b9b/xixbbpbbxix/hphphphphph",
 		-- "i9i//h9h//b9b//p9p", --test level one
 		-- "////xb8xxb8", --lvl 1
@@ -175,6 +183,8 @@ function _update60()
 	update_particles()
 	--same with screen shake!
 	screen_shake()
+	--and drawing sashes
+	update_sash()
 
 	if manager.mode=="game" then
 		update_game()
@@ -851,6 +861,8 @@ function draw_game()
 		print("points:"..player.points,68,0,7)
 		print("combo:"..player.combo,34,0,7)
 	end
+
+	draw_sash()
 end
 
 -->8
@@ -884,6 +896,7 @@ function next_level()
 	player.combo=0 --combo chain multiplier
 	player.lives=3
 	build_bricks(level[manager.level_number])
+	show_sash("stage "..manager.level_number,11)
 	serve_ball()
 end
 
@@ -1727,6 +1740,39 @@ end
 
 -->8
 -- ui --
+
+function show_sash(_text,_color)
+	sash_height=0
+	sash__target_height=9
+	sash_color=_color
+	sash_text=_text
+	sash_frames=0
+	sash_visible=true
+end
+
+function update_sash()
+	if sash_visible then
+		sash_frames+=1
+		--animate width
+		sash_height+=(sash__target_height-sash_height)*0.5
+		if abs(sash__target_height-sash_height)<0.3 then
+			sash_height=sash__target_height
+		end
+		--unanimate sash
+		if sash_frames>60 then
+			sash__target_height=0
+		end
+		if sash_frames>90 then
+			sash_visible=false
+		end
+	end
+end
+
+function draw_sash()
+	if sash_height>0 then
+		rectfill(0,64-sash_height,128,64+sash_height,sash_color)
+	end
+end
 
 function cprint(_string,_y,_col,_spec_chars)
 	local _offset=_spec_chars or 0
