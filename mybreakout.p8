@@ -4,8 +4,6 @@ __lua__
 -- goals --
 --return to main menu from gameover
 --ui
---	powerup messages
---	powerup percentage bar
 --gameplay tweaks
 --	- smaller paddle
 --level design	
@@ -15,6 +13,7 @@ __lua__
 --  - start screen music
 --  - game win music
 --better collision
+--owerup percentage bar
 
 --[[
 
@@ -68,6 +67,8 @@ function _init()
 	sash_target_height=0
 	sash_color=8
 	sash_text=""
+	sash_text_x=0
+	sash_text_dx=0
 	sash_visible=false
 	sash_frames=0
 
@@ -98,8 +99,8 @@ function _init()
 		--p = powerup brick
 
 		"s9s",
-	    "s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s"
-		-- "b9bv9vx9xp9px9xb9bv9vx9xp9p",
+	    -- "s9s//sbsbsbsbsbs//sbsbsbsbsbs//s9s"
+		"b9bv9vx9xp9px9xb9bv9vx9xp9p"
 		-- "b9bx9xb9bx9xb9b",
 		-- "s9s/xixbbpbbxix/hphphphphph/bsbsbsbsbsb",
 		-- "b9b/xixbbpbbxix/hphphphphph",
@@ -880,6 +881,7 @@ function start_game()
 	player.combo=0 --combo chain multiplier
 	player.lives=3
 	build_bricks(level[manager.level_number])
+	show_sash("stage "..manager.level_number,0)
 	serve_ball()
 end
 
@@ -896,7 +898,7 @@ function next_level()
 	player.combo=0 --combo chain multiplier
 	player.lives=3
 	build_bricks(level[manager.level_number])
-	show_sash("stage "..manager.level_number,11)
+	show_sash("stage "..manager.level_number,0)
 	serve_ball()
 end
 
@@ -977,8 +979,11 @@ end
 
 function combo(_istrue)
 	if _istrue then
+		if player.combo==6 then
+			show_sash("max combo!!",12,1)
+		end
 		player.combo+=1
-		player.combo=mid(1,player.combo,6) --make sure combo doesn't exceed 7
+		player.combo=mid(1,player.combo,7) --make sure combo doesn't exceed 7
 		--todo: at combo 7 can it say 'max', and shake on each hit? (maybe use bump brick?)
 	end
 end
@@ -1060,10 +1065,12 @@ function get_powerup(_powerup)
 		--slowdown
 		powerup.type=1
 		powerup.timer.slowdown=600
+		show_sash("slowdown!",9,4)
 	elseif _powerup==2 then
 		--lifeup
 		powerup.type=0
 		player.lives+=1
+		show_sash("extra life!",7,6)
 	elseif _powerup==3 then
 		--catch
 		powerup.type=3
@@ -1074,24 +1081,29 @@ function get_powerup(_powerup)
 				paddle.sticky=false
 			end
 		end
+		show_sash("sticky paddle life!",11,3)
 	elseif _powerup==4 then
 		--expand
 		powerup.type=4
 		powerup.timer.reduce=0
 		powerup.timer.expand=600
+		show_sash("expand!",12,1)
 	elseif _powerup==5 then
 		--reduce
 		powerup.type=5
 		powerup.timer.expand=0
 		powerup.timer.reduce=600
+		show_sash("reduce!",0,8)
 	elseif _powerup==6 then
 		--megaball
 		powerup.type=6
 		powerup.timer.megaball=100
+		show_sash("megaball!",8,2)
 	elseif _powerup==7 then
 		--multiball
 		powerup.type=7
 		multi_ball()
+		show_sash("multiball!",10,9)
 	end
 end
 
@@ -1741,28 +1753,49 @@ end
 -->8
 -- ui --
 
-function show_sash(_text,_color)
+function show_sash(_text,_color,_text_color)
 	sash_height=0
-	sash_target_height=9
+	sash_target_height=4
 	sash_color=_color
+	sash_text_color=_text_color or 7
 	sash_text=_text
+	sash_text_x=-#sash_text*4
+	sash_text_dx=64-(#sash_text*2)
 	sash_frames=0
 	sash_visible=true
+	sash_delay_height=0
+	sash_delay_text=5
 end
 
 function update_sash()
 	if sash_visible then
 		sash_frames+=1
 		--animate width
-		sash_height+=(sash_target_height-sash_height)*0.5
-		if abs(sash_target_height-sash_height)<0.3 then
-			sash_height=sash__arget_height
+		if sash_delay_height>0 then
+			sash_delay_height-=1
+		else
+			sash_height+=(sash_target_height-sash_height)/5
+			if abs(sash_target_height-sash_height)<0.3 then
+				sash_height=sash_target_height
+			end
+		end
+		--animate text
+		if sash_delay_text>0 then
+			sash_delay_text-=1
+		else
+			sash_text_x+=(sash_text_dx-sash_text_x)/10
+			if abs(sash_text_x-sash_text_dx)<0.3 then
+				sash_text_x=sash_text_dx
+			end
 		end
 		--unanimate sash
-		if sash_frames>60 then
+		if sash_frames==70 then
 			sash_target_height=0
+			sash_text_dx=160
+			sash_delay_height=15
+			sash_delay_text=0
 		end
-		if sash_frames>90 then
+		if sash_frames>110 then
 			sash_visible=false
 		end
 	end
@@ -1771,6 +1804,7 @@ end
 function draw_sash()
 	if sash_height>0 then
 		rectfill(0,64-sash_height,128,64+sash_height,sash_color)
+		print(sash_text,sash_text_x,62,sash_text_color)
 	end
 end
 
